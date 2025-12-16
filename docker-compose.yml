@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: rpg-market-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: rpg_market
+      MYSQL_USER: rpg_user
+      MYSQL_PASSWORD: rpg_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - rpg-network
+
+  migrate:
+    image: migrate/migrate
+    container_name: rpg-market-migrate
+    volumes:
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database", "mysql://root:password@tcp(mysql:3306)/rpg_market", "up"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - rpg-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rpg-market-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: rpg_market
+      PORT: 8080
+      ENV: development
+      JWT_SECRET: dev-secret-key-change-in-production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - rpg-network
+
+volumes:
+  mysql_data:
+
+networks:
+  rpg-network:
+    driver: bridge

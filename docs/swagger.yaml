@@ -1,0 +1,39 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: RPGアイテム取引マーケットプレイスのAPI
+  title: RPG Market API
+  version: "1.0"
+paths:
+  /:
+    get:
+      description: APIのウェルカムメッセージを返す
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: ルートエンドポイント
+      tags:
+      - root
+  /health:
+    get:
+      description: サーバーの稼働状態を確認
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: ヘルスチェック
+      tags:
+      - health
+swagger: "2.0"

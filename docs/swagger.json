@@ -1,0 +1,59 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "RPGアイテム取引マーケットプレイスのAPI",
+        "title": "RPG Market API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/": {
+            "get": {
+                "description": "APIのウェルカムメッセージを返す",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "root"
+                ],
+                "summary": "ルートエンドポイント",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "サーバーの稼働状態を確認",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "ヘルスチェック",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
