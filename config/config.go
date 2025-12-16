@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -58,14 +57,14 @@ func getFirebaseCredentialsPath() string {
 // Cloud SQL Unix Socket接続に対応
 func (c *Config) GetDSN() string {
 	// Cloud SQL Unix Socket接続の判定（本番環境）
-	if strings.HasPrefix(c.DBHost, "/cloudsql/") {
-		// Unix socketの場合はポートを使わない
-		return fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	if c.Environment == "production" {
+		dsn := fmt.Sprintf("%s:%s@unix(/cloudsql/%s)/%s",
 			c.DBUser,
 			c.DBPassword,
-			c.DBHost,
+			c.DBHost, // ここにCloud SQLの接続名を指定
 			c.DBName,
 		)
+		return dsn
 	}
 
 	// TCP接続（開発環境）
