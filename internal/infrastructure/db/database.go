@@ -3,71 +3,78 @@ package db
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"rpg-market-backend/config"
-
+	"github.com/shinybell/rpg-market-backend/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-var DB *gorm.DB
+type Database struct {
+	db *gorm.DB
+}
 
-// InitDB initializes the database connection with connection pooling
-func InitDB(cfg *config.Config) error {
-	dsn := cfg.GetDSN()
+var globalDB *Database
 
-	// GORM logger configuration
-	var gormLogger logger.Interface
+// NewDatabase はデータベース接続を初期化する
+func NewDatabase(cfg *config.Config) (*Database, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBName,
+	)
+
+	// ログレベルの設定
+	logLevel := logger.Silent
 	if cfg.Environment == "development" {
-		gormLogger = logger.Default.LogMode(logger.Info)
-	} else {
-		gormLogger = logger.Default.LogMode(logger.Error)
+		logLevel = logger.Info
 	}
 
-	// Open database connection
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: gormLogger,
+		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Get underlying sql.DB to configure connection pool
+	// コネクションプールの設定
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to get database instance: %w", err)
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	// Connection pool settings
+	// 最大アイドル接続数
 	sqlDB.SetMaxIdleConns(10)
+	// 最大オープン接続数
 	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// Ping to verify connection
-	if err := sqlDB.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	DB = db
 	log.Println("Database connection established successfully")
-	return nil
+
+	database := &Database{db: db}
+	globalDB = database
+	return database, nil
 }
 
-// CloseDB closes the database connection
-func CloseDB() error {
-	if DB != nil {
-		sqlDB, err := DB.DB()
-		if err != nil {
-			return err
-		}
-		return sqlDB.Close()
+// GetDB はGORMのDBインスタンスを返す
+func (d *Database) GetDB() *gorm.DB {
+	return d.db
+}
+
+// Close はデータベース接続を閉じる
+func (d *Database) Close() error {
+	sqlDB, err := d.db.DB()
+	if err != nil {
+		return err
 	}
-	return nil
+	return sqlDB.Close()
 }
 
-// GetDB returns the database instance
-func GetDB() *gorm.DB {
-	return DB
+// GetGlobalDB はグローバルなDBインスタンスを返す
+func GetGlobalDB() *gorm.DB {
+	if globalDB == nil {
+		return nil
+	}
+	return globalDB.db
 }

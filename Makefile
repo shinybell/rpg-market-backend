@@ -1,4 +1,4 @@
-.PHONY: help up down build logs db-shell migrate-up migrate-down migrate-create clean restart
+.PHONY: help up down build logs db-shell migrate-up migrate-down migrate-create clean restart rebuild
 
 help: ## このヘルプを表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -12,8 +12,17 @@ down: ## Docker環境を停止
 build: ## Dockerイメージを再ビルド
 	docker-compose build --no-cache
 
+rebuild: clean build up ## 完全再ビルドして起動
+	@echo "Rebuild complete!"
+
+softrebuild: down build up ## イメージを再ビルドして起動
+	@echo "Soft rebuild complete!"
+
 logs: ## ログを表示（バックエンド）
 	docker-compose logs -f backend
+
+logs-all: ## すべてのログを表示
+	docker-compose logs -f
 
 logs-db: ## ログを表示（MySQL）
 	docker-compose logs -f mysql
@@ -29,12 +38,12 @@ migrate-up: ## マイグレーションを実行（手動）
 
 migrate-down: ## マイグレーションをロールバック
 	docker run --rm -v $(PWD)/migrations:/migrations --network rpg-market-backend_default \
-		migrate/migrate -path=/migrations -database "mysql://root:password@tcp(mysql:3306)/rpg_market" down 1
+	migrate/migrate -path=/migrations -database "mysql://root:password@tcp(mysql:3306)/rpg_market" down 1
 
 migrate-create: ## 新しいマイグレーションを作成 (例: make migrate-create name=add_users)
 	@if [ -z "$(name)" ]; then \
-		echo "Usage: make migrate-create name=migration_name"; \
-		exit 1; \
+	echo "Usage: make migrate-create name=migration_name"; \
+	exit 1; \
 	fi
 	migrate create -ext sql -dir ./migrations -seq $(name)
 
@@ -55,5 +64,8 @@ fmt: ## コードフォーマット
 
 lint: ## リント実行
 	golangci-lint run
+
+ps: ## コンテナの状態を確認
+	docker-compose ps
 
 .DEFAULT_GOAL := help

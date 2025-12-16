@@ -1,4 +1,112 @@
 basePath: /
+definitions:
+  controller.LoginRequest:
+    properties:
+      nickname:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - nickname
+    type: object
+  controller.UpdateProfileRequest:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      nickname:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  entity.KYCStatus:
+    enum:
+    - unverified
+    - pending
+    - verified
+    - rejected
+    type: string
+    x-enum-varnames:
+    - KYCStatusUnverified
+    - KYCStatusPending
+    - KYCStatusVerified
+    - KYCStatusRejected
+  entity.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      firebase_uid:
+        type: string
+      id:
+        type: integer
+      kyc_status:
+        $ref: '#/definitions/entity.KYCStatus'
+      last_login_at:
+        type: string
+      phone_number:
+        type: string
+      profile:
+        allOf:
+        - $ref: '#/definitions/entity.UserProfile'
+        description: リレーション
+      status:
+        $ref: '#/definitions/entity.UserStatus'
+      updated_at:
+        type: string
+      wallet:
+        $ref: '#/definitions/entity.Wallet'
+    type: object
+  entity.UserProfile:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      created_at:
+        type: string
+      followers_count:
+        type: integer
+      following_count:
+        type: integer
+      is_seller_verified:
+        type: boolean
+      nickname:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  entity.UserStatus:
+    enum:
+    - active
+    - suspended
+    - banned
+    - deleted
+    type: string
+    x-enum-varnames:
+    - UserStatusActive
+    - UserStatusSuspended
+    - UserStatusBanned
+    - UserStatusDeleted
+  entity.Wallet:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      points:
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -21,6 +129,164 @@ paths:
       summary: ルートエンドポイント
       tags:
       - root
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Firebase認証後、バックエンドのDBにユーザー情報を同期する
+      parameters:
+      - description: ニックネーム
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザーログイン/登録
+      tags:
+      - auth
+  /api/auth/me:
+    get:
+      description: 認証されたユーザーのプロフィール情報を取得
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー情報取得
+      tags:
+      - auth
+  /api/users:
+    delete:
+      description: ユーザーアカウントを論理削除
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー削除
+      tags:
+      - user
+  /api/users/profile:
+    put:
+      consumes:
+      - application/json
+      description: ユーザーのプロフィール情報を更新
+      parameters:
+      - description: 更新する情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: プロフィール更新
+      tags:
+      - user
   /health:
     get:
       description: サーバーの稼働状態を確認
@@ -36,4 +302,9 @@ paths:
       summary: ヘルスチェック
       tags:
       - health
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

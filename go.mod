@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	firebase.google.com/go/v4 v4.18.0
+	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/swaggo/files v1.0.1

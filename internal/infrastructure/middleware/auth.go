@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -8,68 +10,72 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 )
 
-// FirebaseAuth is a middleware that validates Firebase ID tokens
+// FirebaseAuth はFirebase認証を検証するミドルウェア
 func FirebaseAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// OPTIONSリクエスト（プリフライト）はスキップ
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
+
+		log.Printf("[AUTH] Method: %s, Path: %s", c.Request.Method, c.Request.URL.Path)
+		log.Printf("[AUTH] Authorization header: %s", authHeader)
+
+		// Authorizationヘッダーの確認
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			log.Println("[AUTH] No authorization header")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Authorization header is required",
+			})
 			c.Abort()
 			return
 		}
 
-		// Extract token from "Bearer <token>"
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == authHeader {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
+		// Bearer トークンの抽出
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			log.Printf("[AUTH] Invalid header format: %v", parts)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid authorization header format. Expected 'Bearer <token>'",
+			})
 			c.Abort()
 			return
 		}
 
-		// Get Firebase client from infrastructure layer
-		fbClient := auth.GetClient()
-		if fbClient == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Firebase client not initialized"})
+		idToken := parts[1]
+		log.Printf("[AUTH] Token length: %d", len(idToken))
+
+		// Firebaseトークンの検証
+		client := auth.GetClient()
+		if client == nil {
+			log.Println("[AUTH] Firebase client is nil")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Firebase client not initialized",
+			})
 			c.Abort()
 			return
 		}
 
-		// Verify Firebase ID token
-		decodedToken, err := fbClient.VerifyIDToken(c.Request.Context(), token)
+		token, err := client.VerifyIDToken(context.Background(), idToken)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: " + err.Error()})
+			log.Printf("[AUTH] Token verification failed: %v", err)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Invalid or expired token",
+				"details": err.Error(),
+			})
 			c.Abort()
 			return
 		}
 
-		// Set user info in context
-		c.Set("firebase_uid", decodedToken.UID)
-		c.Set("email", decodedToken.Claims["email"])
-		c.Next()
-	}
-}
+		log.Printf("[AUTH] Token verified successfully for UID: %s", token.UID)
 
-// OptionalAuth is a middleware that tries to authenticate but doesn't abort if token is missing
-func OptionalAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.Next()
-			return
-		}
+		// ユーザー情報をコンテキストに保存
+		c.Set("firebase_uid", token.UID)
+		c.Set("email", token.Claims["email"])
 
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		fbClient := auth.GetClient()
-		if fbClient == nil {
-			c.Next()
-			return
-		}
-
-		decodedToken, err := fbClient.VerifyIDToken(c.Request.Context(), token)
-		if err == nil {
-			c.Set("firebase_uid", decodedToken.UID)
-			c.Set("email", decodedToken.Claims["email"])
-		}
 		c.Next()
 	}
 }
