@@ -39,6 +39,24 @@ steps:
     id: Push-Migrate
     waitFor: ["Build-Migrate"]
 
+  # マイグレーション用Cloud Runジョブのデプロイ
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    args:
+      - run
+      - jobs
+      - deploy
+      - rpg-market-migrate
+      - >-
+        --image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/rpg-market-migrate:$COMMIT_SHA
+      - "--region=$_DEPLOY_REGION"
+      - "--set-cloudsql-instances=$_CLOUDSQL_INSTANCE"
+      - "--set-secrets=DATABASE_URL=database-url:latest"
+      - "--max-retries=1"
+      - "--task-timeout=10m"
+    id: Deploy-Migrate-Job
+    entrypoint: gcloud
+    waitFor: ["Push-Migrate"]
+
   # マイグレーションを実行
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
