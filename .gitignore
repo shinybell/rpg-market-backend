@@ -33,3 +33,6 @@ Thumbs.db
 # Local environment files
 .env
 .env.local
+
+# Firebase Service Account Key
+term8-shunsei-suzuki-firebase-adminsdk-fbsvc-ec735f5c32.json

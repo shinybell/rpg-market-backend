@@ -9,15 +9,16 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	Environment string
-	DBHost      string
-	DBPort      string
-	DBUser      string
-	DBPassword  string
-	DBName      string
-	JWTSecret   string
+	Port                    string
+	DatabaseURL             string
+	Environment             string
+	DBHost                  string
+	DBPort                  string
+	DBUser                  string
+	DBPassword              string
+	DBName                  string
+	JWTSecret               string
+	FirebaseCredentialsPath string
 }
 
 func Load() *Config {
@@ -26,15 +27,16 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		Environment: getEnv("ENV", "development"),
-		DBHost:      getEnv("DB_HOST", "localhost"),
-		DBPort:      getEnv("DB_PORT", "3306"),
-		DBUser:      getEnv("DB_USER", "root"),
-		DBPassword:  getEnv("DB_PASSWORD", ""),
-		DBName:      getEnv("DB_NAME", "rpg_market"),
-		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key"),
+		Port:                    getEnv("PORT", "8080"),
+		DatabaseURL:             getEnv("DATABASE_URL", ""),
+		Environment:             getEnv("ENV", "development"),
+		DBHost:                  getEnv("DB_HOST", "localhost"),
+		DBPort:                  getEnv("DB_PORT", "3306"),
+		DBUser:                  getEnv("DB_USER", "root"),
+		DBPassword:              getEnv("DB_PASSWORD", ""),
+		DBName:                  getEnv("DB_NAME", "rpg_market"),
+		JWTSecret:               getEnv("JWT_SECRET", "your-secret-key"),
+		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
 	}
 }
 
