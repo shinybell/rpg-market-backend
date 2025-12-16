@@ -3,7 +3,6 @@ CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(20) UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
     status ENUM('active', 'suspended', 'banned', 'deleted') DEFAULT 'active',
     kyc_status ENUM('unverified', 'pending', 'verified', 'rejected') DEFAULT 'unverified',
     last_login_at TIMESTAMP NULL,
