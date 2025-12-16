@@ -18,6 +18,7 @@ type Config struct {
 	DBName                  string
 	JWTSecret               string
 	FirebaseCredentialsPath string
+	VercelDeployURL         string
 }
 
 func Load() *Config {
@@ -37,6 +38,7 @@ func Load() *Config {
 		DBName:                  getEnv("DB_NAME", "rpg_market"),
 		JWTSecret:               getEnv("JWT_SECRET", "your-secret-key"),
 		FirebaseCredentialsPath: getFirebaseCredentialsPath(),
+		VercelDeployURL:         getEnv("VERCEL_DEPLOY_URL", ""),
 	}
 
 	return cfg
