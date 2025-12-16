@@ -60,7 +60,7 @@ func getFirebaseCredentialsPath() string {
 func (c *Config) GetDSN() string {
 	// Cloud SQL Unix Socket接続の判定（本番環境）
 	if c.Environment == "production" {
-		dsn := fmt.Sprintf("%s:%s@unix(/cloudsql/%s)/%s",
+		dsn := fmt.Sprintf("%s:%s@unix(/cloudsql/%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			c.DBUser,
 			c.DBPassword,
 			c.DBHost, // ここにCloud SQLの接続名を指定
