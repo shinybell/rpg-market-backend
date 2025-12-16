@@ -106,6 +106,8 @@ substitutions:
   _SERVICE_NAME: rpg-market-backend
   _DEPLOY_REGION: us-central1
   _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _CLOUDSQL_INSTANCE: term8-shunsei-suzuki:us-central1:uttc
+  _DB_HOST: term8-shunsei-suzuki:us-central1:uttc
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
