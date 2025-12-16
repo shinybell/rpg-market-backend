@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/shinybell/rpg-market-backend/config"
 	"gorm.io/driver/mysql"
@@ -18,19 +19,15 @@ var globalDB *Database
 
 // NewDatabase はデータベース接続を初期化する
 func NewDatabase(cfg *config.Config) (*Database, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DBHost,
-		cfg.DBPort,
-		cfg.DBName,
-	)
+	dsn := cfg.GetDSN()
 
 	// ログレベルの設定
 	logLevel := logger.Silent
 	if cfg.Environment == "development" {
 		logLevel = logger.Info
 	}
+
+	log.Printf("Connecting to database: %s", maskPassword(dsn))
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
@@ -48,7 +45,9 @@ func NewDatabase(cfg *config.Config) (*Database, error) {
 	// 最大アイドル接続数
 	sqlDB.SetMaxIdleConns(10)
 	// 最大オープン接続数
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(20)
+	// 接続の最大寿命
+	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	log.Println("Database connection established successfully")
 
@@ -77,4 +76,18 @@ func GetGlobalDB() *gorm.DB {
 		return nil
 	}
 	return globalDB.db
+}
+
+// maskPassword はDSNからパスワードをマスクするユーティリティ関数
+func maskPassword(dsn string) string {
+	// 例: user:password@tcp(localhost:3306)/dbname
+	var maskedDSN string
+	n, err := fmt.Sscanf(dsn, "%[^:]:%[^@]@%s", new(string), new(string), new(string))
+	if err != nil || n != 3 {
+		return dsn // フォーマットが異なる場合はそのまま返す
+	}
+	var user, password, rest string
+	fmt.Sscanf(dsn, "%[^:]:%[^@]@%s", &user, &password, &rest)
+	maskedDSN = fmt.Sprintf("%s:****@%s", user, rest)
+	return maskedDSN
 }

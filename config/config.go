@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Port                    string
-	DatabaseURL             string
 	Environment             string
 	DBHost                  string
 	DBPort                  string
@@ -22,13 +22,14 @@ type Config struct {
 }
 
 func Load() *Config {
+	// .envファイルを読み込む（開発環境用）
+	// 本番環境では環境変数が設定されているため、エラーは無視
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+		log.Println("No .env file found, using environment variables")
 	}
 
-	return &Config{
+	cfg := &Config{
 		Port:                    getEnv("PORT", "8080"),
-		DatabaseURL:             getEnv("DATABASE_URL", ""),
 		Environment:             getEnv("ENV", "development"),
 		DBHost:                  getEnv("DB_HOST", "localhost"),
 		DBPort:                  getEnv("DB_PORT", "3306"),
@@ -36,12 +37,38 @@ func Load() *Config {
 		DBPassword:              getEnv("DB_PASSWORD", ""),
 		DBName:                  getEnv("DB_NAME", "rpg_market"),
 		JWTSecret:               getEnv("JWT_SECRET", "your-secret-key"),
-		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
+		FirebaseCredentialsPath: getFirebaseCredentialsPath(),
 	}
+
+	return cfg
 }
 
-// GetDSN returns the MySQL DSN (Data Source Name) for database connection
+func getFirebaseCredentialsPath() string {
+	env := getEnv("ENV", "development")
+
+	if env == "production" {
+		// 本番環境: Secret Managerからマウントされたパス
+		return "/secrets/firebase-credentials/firebase-credentials"
+	}
+
+	// 開発環境: .envまたは環境変数から取得
+	return getEnv("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json")
+}
+
+// Cloud SQL Unix Socket接続に対応
 func (c *Config) GetDSN() string {
+	// Cloud SQL Unix Socket接続の判定（本番環境）
+	if strings.HasPrefix(c.DBHost, "/cloudsql/") {
+		// Unix socketの場合はポートを使わない
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			c.DBUser,
+			c.DBPassword,
+			c.DBHost,
+			c.DBName,
+		)
+	}
+
+	// TCP接続（開発環境）
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.DBUser,
 		c.DBPassword,
