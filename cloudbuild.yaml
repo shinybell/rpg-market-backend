@@ -10,12 +10,49 @@ steps:
       - "-f"
       - Dockerfile
     id: Build
+
   - name: gcr.io/cloud-builders/docker
     args:
       - push
       - >-
         $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
     id: Push
+
+  # マイグレーション用イメージのビルド
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - "-t"
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/rpg-market-migrate:$COMMIT_SHA
+      - "-f"
+      - Dockerfile.migrate
+      - .
+    id: Build-Migrate
+
+  # マイグレーション用イメージのプッシュ
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/rpg-market-migrate:$COMMIT_SHA
+    id: Push-Migrate
+    waitFor: ["Build-Migrate"]
+
+  # マイグレーションを実行
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    args:
+      - run
+      - jobs
+      - execute
+      - rpg-market-migrate
+      - "--region=$_DEPLOY_REGION"
+      - "--wait"
+    id: Execute-Migration
+    entrypoint: gcloud
+    waitFor: ["Deploy-Migrate-Job"]
+
+  # 既存を変更: Cloud Runサービスのデプロイ（マイグレーション成功後のみ）
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
     args:
       - run
@@ -28,9 +65,15 @@ steps:
       - >-
         --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID
       - "--region=$_DEPLOY_REGION"
+      - "--add-cloudsql-instances=$_CLOUDSQL_INSTANCE"
+      - "--set-secrets=DB_USER=db-user:latest,DB_PASSWORD=db-password:latest,DB_NAME=db-name:latest"
+      - "--set-secrets=/secrets/firebase-credentials/firebase-credentials.json=firebase-credentials:latest"
+      - "--update-env-vars=DB_HOST=$_DB_HOST,ENV=production"
       - "--quiet"
     id: Deploy
     entrypoint: gcloud
+    waitFor: ["Execute-Migration", "Push"] # 🔧 マイグレーション完了を待つ
+
 images:
   - >-
     $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA

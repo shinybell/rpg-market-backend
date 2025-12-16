@@ -1,0 +1,6 @@
+FROM migrate/migrate:latest
+
+COPY migrations /migrations
+
+ENTRYPOINT []
+CMD sh -c "migrate -path /migrations -database \"${DATABASE_URL}\" up"
