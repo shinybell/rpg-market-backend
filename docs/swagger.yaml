@@ -1,5 +1,81 @@
 basePath: /
 definitions:
+  controller.CreateItemImageReq:
+    properties:
+      display_order:
+        minimum: 0
+        type: integer
+      image_url:
+        type: string
+    required:
+    - image_url
+    type: object
+  controller.CreateItemRequest:
+    properties:
+      brand_id:
+        type: integer
+      category_id:
+        type: integer
+      condition:
+        allOf:
+        - $ref: '#/definitions/entity.ItemCondition'
+        enum:
+        - new
+        - like_new
+        - very_good
+        - good
+        - acceptable
+      description:
+        minLength: 10
+        type: string
+      images:
+        items:
+          $ref: '#/definitions/controller.CreateItemImageReq'
+        type: array
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      prefecture_id:
+        type: integer
+      price:
+        minimum: 0
+        type: number
+      shipping_days:
+        allOf:
+        - $ref: '#/definitions/entity.ShippingDays'
+        enum:
+        - 1-2
+        - 2-3
+        - 4-7
+      shipping_method_id:
+        type: integer
+      shipping_payer:
+        allOf:
+        - $ref: '#/definitions/entity.ShippingPayer'
+        enum:
+        - buyer
+        - seller
+      status:
+        allOf:
+        - $ref: '#/definitions/entity.ItemStatus'
+        enum:
+        - draft
+        - on_sale
+      stock:
+        minimum: 1
+        type: integer
+    required:
+    - category_id
+    - condition
+    - description
+    - name
+    - price
+    - shipping_days
+    - shipping_payer
+    - status
+    - stock
+    type: object
   controller.LoginRequest:
     properties:
       nickname:
@@ -8,6 +84,34 @@ definitions:
         type: string
     required:
     - nickname
+    type: object
+  controller.UpdateItemRequest:
+    properties:
+      condition:
+        $ref: '#/definitions/entity.ItemCondition'
+      description:
+        minLength: 10
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      prefecture_id:
+        type: integer
+      price:
+        minimum: 0
+        type: number
+      shipping_days:
+        $ref: '#/definitions/entity.ShippingDays'
+      shipping_method_id:
+        type: integer
+      shipping_payer:
+        $ref: '#/definitions/entity.ShippingPayer'
+      status:
+        $ref: '#/definitions/entity.ItemStatus'
+      stock:
+        minimum: 0
+        type: integer
     type: object
   controller.UpdateProfileRequest:
     properties:
@@ -20,6 +124,34 @@ definitions:
         minLength: 2
         type: string
     type: object
+  entity.ItemCondition:
+    enum:
+    - new
+    - like_new
+    - very_good
+    - good
+    - acceptable
+    type: string
+    x-enum-varnames:
+    - ItemConditionNew
+    - ItemConditionLikeNew
+    - ItemConditionVeryGood
+    - ItemConditionGood
+    - ItemConditionAcceptable
+  entity.ItemStatus:
+    enum:
+    - draft
+    - on_sale
+    - trading
+    - sold_out
+    - suspended
+    type: string
+    x-enum-varnames:
+    - ItemStatusDraft
+    - ItemStatusOnSale
+    - ItemStatusTrading
+    - ItemStatusSoldOut
+    - ItemStatusSuspended
   entity.KYCStatus:
     enum:
     - unverified
@@ -32,6 +164,24 @@ definitions:
     - KYCStatusPending
     - KYCStatusVerified
     - KYCStatusRejected
+  entity.ShippingDays:
+    enum:
+    - 1-2
+    - 2-3
+    - 4-7
+    type: string
+    x-enum-varnames:
+    - ShippingDays1to2
+    - ShippingDays2to3
+    - ShippingDays4to7
+  entity.ShippingPayer:
+    enum:
+    - buyer
+    - seller
+    type: string
+    x-enum-varnames:
+    - ShippingPayerBuyer
+    - ShippingPayerSeller
   entity.User:
     properties:
       created_at:
@@ -106,6 +256,97 @@ definitions:
         type: string
       user_id:
         type: integer
+    type: object
+  presenter.ItemImageResponse:
+    properties:
+      display_order:
+        type: integer
+      id:
+        type: integer
+      image_url:
+        type: string
+    type: object
+  presenter.ItemResponse:
+    properties:
+      brand_id:
+        type: integer
+      category_id:
+        type: integer
+      condition:
+        $ref: '#/definitions/entity.ItemCondition'
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          $ref: '#/definitions/presenter.ItemImageResponse'
+        type: array
+      likes_count:
+        type: integer
+      name:
+        type: string
+      prefecture_id:
+        type: integer
+      price:
+        type: number
+      seller:
+        $ref: '#/definitions/presenter.UserResponse'
+      seller_id:
+        type: integer
+      shipping_days:
+        $ref: '#/definitions/entity.ShippingDays'
+      shipping_method_id:
+        type: integer
+      shipping_payer:
+        $ref: '#/definitions/entity.ShippingPayer'
+      status:
+        $ref: '#/definitions/entity.ItemStatus'
+      stock:
+        type: integer
+      updated_at:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  presenter.UserProfileResponse:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      nickname:
+        type: string
+    type: object
+  presenter.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      firebase_uid:
+        type: string
+      id:
+        type: integer
+      kyc_status:
+        $ref: '#/definitions/entity.KYCStatus'
+      profile:
+        $ref: '#/definitions/presenter.UserProfileResponse'
+      status:
+        $ref: '#/definitions/entity.UserStatus'
+      updated_at:
+        type: string
+      wallet:
+        $ref: '#/definitions/presenter.WalletResponse'
+    type: object
+  presenter.WalletResponse:
+    properties:
+      balance:
+        type: number
+      points:
+        type: number
     type: object
 host: localhost:8080
 info:
@@ -208,6 +449,339 @@ paths:
       summary: ユーザー情報取得
       tags:
       - auth
+  /api/items:
+    get:
+      description: 販売中のアイテム一覧を取得する
+      parameters:
+      - default: 20
+        description: 取得件数
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: オフセット
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/presenter.ItemResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: アイテム一覧取得
+      tags:
+      - items
+    post:
+      consumes:
+      - application/json
+      description: 新しいアイテムを出品する
+      parameters:
+      - description: アイテム情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.CreateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/presenter.ItemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: アイテム作成
+      tags:
+      - items
+  /api/items/{id}:
+    delete:
+      description: アイテムを削除する（出品者のみ）
+      parameters:
+      - description: アイテムID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: アイテム削除
+      tags:
+      - items
+    get:
+      description: アイテムの詳細情報を取得する
+      parameters:
+      - description: アイテムID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/presenter.ItemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: アイテム詳細取得
+      tags:
+      - items
+    put:
+      consumes:
+      - application/json
+      description: アイテムの情報を更新する（出品者のみ）
+      parameters:
+      - description: アイテムID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.UpdateItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/presenter.ItemResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: アイテム更新
+      tags:
+      - items
+  /api/items/category/{category_id}:
+    get:
+      description: 指定したカテゴリのアイテム一覧を取得する
+      parameters:
+      - description: カテゴリID
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      - default: 20
+        description: 取得件数
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: オフセット
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/presenter.ItemResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: カテゴリ別アイテム一覧取得
+      tags:
+      - items
+  /api/items/search:
+    get:
+      description: キーワードでアイテムを検索する
+      parameters:
+      - description: 検索キーワード
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: 取得件数
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: オフセット
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/presenter.ItemResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: アイテム検索
+      tags:
+      - items
+  /api/items/seller/{seller_id}:
+    get:
+      description: 指定した出品者のアイテム一覧を取得する
+      parameters:
+      - description: 出品者ID
+        in: path
+        name: seller_id
+        required: true
+        type: integer
+      - default: 20
+        description: 取得件数
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: オフセット
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/presenter.ItemResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 出品者のアイテム一覧取得
+      tags:
+      - items
   /api/users:
     delete:
       description: ユーザーアカウントを論理削除

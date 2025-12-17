@@ -4,8 +4,8 @@ CREATE TABLE wallet_transactions (
     user_id BIGINT NOT NULL,
     related_id BIGINT NULL,
     type ENUM('sales_deposit', 'purchase', 'withdrawal', 'point_grant', 'point_expire', 'refund') NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    balance_snapshot DECIMAL(10, 2) NOT NULL,
+    amount BIGINT NOT NULL,
+    balance_snapshot BIGINT NOT NULL,
     description VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

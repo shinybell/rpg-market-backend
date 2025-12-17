@@ -50,12 +50,15 @@ func main() {
 
 	// Initialize repositories
 	userRepo := mysql.NewUserRepository(database.GetDB())
+	itemRepo := mysql.NewItemRepository(database.GetDB())
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo)
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
+	itemController := controller.NewItemController(itemUseCase, userUseCase)
 
 	// Setup router
 	r := gin.Default()
@@ -80,6 +83,13 @@ func main() {
 	r.GET("/health", handleHealth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Public item routes (認証不要)
+	r.GET("/api/items", itemController.ListItems)
+	r.GET("/api/items/search", itemController.SearchItems) // searchは:idより前に定義
+	r.GET("/api/items/seller/:seller_id", itemController.ListItemsBySeller)
+	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
+	r.GET("/api/items/:id", itemController.GetItem)
+
 	// Protected routes
 	api := r.Group("/api")
 	api.Use(middleware.FirebaseAuth())
@@ -91,6 +101,11 @@ func main() {
 		// ユーザー管理
 		api.PUT("/users/profile", userController.UpdateProfile)
 		api.DELETE("/users", userController.DeleteUser)
+
+		// アイテム管理（認証必須）
+		api.POST("/items", itemController.CreateItem)
+		api.PUT("/items/:id", itemController.UpdateItem)
+		api.DELETE("/items/:id", itemController.DeleteItem)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)
