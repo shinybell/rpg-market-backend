@@ -26,8 +26,8 @@ type UserProfileResponse struct {
 
 // WalletResponse はウォレットのレスポンス
 type WalletResponse struct {
-	Balance float64 `json:"balance"`
-	Points  float64 `json:"points"`
+	Balance int64 `json:"balance"`
+	Points  int64 `json:"points"`
 }
 
 // ToUserResponse はエンティティをレスポンスに変換する
