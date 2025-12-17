@@ -22,18 +22,16 @@ jobs:
           cache: true
 
       - name: Download dependencies
-        working-directory: ./rpg-market-backend
         run: go mod download
 
       - name: Run tests
-        working-directory: ./rpg-market-backend
         run: go test -v -race -coverprofile=coverage.out ./...
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: rpg-market-backend/coverage.out
+          path: coverage.out
 
   lint:
     name: Lint & Format Check
@@ -50,7 +48,6 @@ jobs:
           cache: true
 
       - name: Check formatting
-        working-directory: ./rpg-market-backend
         run: |
           if [ -n "$(gofmt -l .)" ]; then
             echo "❌ 以下のファイルが go fmt されていません:"
@@ -64,7 +61,6 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
-          working-directory: rpg-market-backend
 
   build:
     name: Build
@@ -81,5 +77,4 @@ jobs:
           cache: true
 
       - name: Build
-        working-directory: ./rpg-market-backend
         run: go build -v ./cmd/api
