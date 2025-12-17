@@ -68,4 +68,19 @@ lint: ## リント実行
 ps: ## コンテナの状態を確認
 	docker-compose ps
 
+test-coverage: ## カバレッジ付きテストを実行
+	go test -v -race -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+fmt-check: ## フォーマットチェック（CI用）
+	@if [ -n "$$(gofmt -l .)" ]; then \
+		echo "以下のファイルがフォーマットされていません:"; \
+		gofmt -l .; \
+		exit 1; \
+	fi
+
+imports: ## import文を整理
+	goimports -w .
+
 .DEFAULT_GOAL := help
