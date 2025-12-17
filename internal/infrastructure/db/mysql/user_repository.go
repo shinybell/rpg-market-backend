@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/shinybell/rpg-market-backend/internal/domain/entity"
 	"github.com/shinybell/rpg-market-backend/internal/domain/repository"
-	"gorm.io/gorm"
 )
 
 type userRepository struct {

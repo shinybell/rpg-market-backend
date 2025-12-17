@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 )
 

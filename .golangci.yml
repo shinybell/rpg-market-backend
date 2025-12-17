@@ -1,22 +1,24 @@
-# rpg-market-backend/.golangci.yml
+version: "2"
+run:
+  tests: true
 linters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
   enable:
     - gofmt
     - goimports
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - gosimple
-    - ineffassign
-
-linters-settings:
-  goimports:
-    local-prefixes: github.com/shinybell/rpg-market-backend
-
-run:
-  timeout: 5m
-  tests: true
-
-issues:
-  exclude-use-default: false
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/shinybell/rpg-market-backend
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

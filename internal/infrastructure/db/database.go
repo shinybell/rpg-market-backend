@@ -5,10 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/shinybell/rpg-market-backend/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/shinybell/rpg-market-backend/config"
 )
 
 type Database struct {
@@ -81,13 +82,11 @@ func GetGlobalDB() *gorm.DB {
 // maskPassword はDSNからパスワードをマスクするユーティリティ関数
 func maskPassword(dsn string) string {
 	// 例: user:password@tcp(localhost:3306)/dbname
-	var maskedDSN string
-	n, err := fmt.Sscanf(dsn, "%[^:]:%[^@]@%s", new(string), new(string), new(string))
+	var user, password, rest string
+	n, err := fmt.Sscanf(dsn, "%[^:]:%[^@]@%s", &user, &password, &rest)
 	if err != nil || n != 3 {
 		return dsn // フォーマットが異なる場合はそのまま返す
 	}
-	var user, password, rest string
-	fmt.Sscanf(dsn, "%[^:]:%[^@]@%s", &user, &password, &rest)
-	maskedDSN = fmt.Sprintf("%s:****@%s", user, rest)
+	maskedDSN := fmt.Sprintf("%s:****@%s", user, rest)
 	return maskedDSN
 }

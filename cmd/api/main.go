@@ -6,6 +6,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/shinybell/rpg-market-backend/config"
 	"github.com/shinybell/rpg-market-backend/internal/adapter/controller"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
@@ -15,9 +18,6 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/usecase"
 
 	_ "github.com/shinybell/rpg-market-backend/docs"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title RPG Market API
@@ -42,7 +42,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
 
 	// Initialize repositories
 	userRepo := mysql.NewUserRepository(database.GetDB())
@@ -90,7 +94,9 @@ func main() {
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)
-	r.Run(":" + cfg.Port)
+	if err := r.Run(":" + cfg.Port); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
 
 // @Summary ルートエンドポイント

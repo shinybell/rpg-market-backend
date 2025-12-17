@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/shinybell/rpg-market-backend/internal/usecase"
 )
 
