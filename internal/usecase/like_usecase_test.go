@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/shinybell/rpg-market-backend/internal/domain/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/shinybell/rpg-market-backend/internal/domain/entity"
 )
 
 // MockLikeRepository はLikeRepositoryのモック

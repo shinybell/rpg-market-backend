@@ -70,11 +70,15 @@ func (uc *FollowUseCase) AddFollow(ctx context.Context, followerID, followeeID i
 	// プロフィールのカウント更新
 	if follower.Profile != nil {
 		follower.Profile.IncrementFollowing()
-		uc.userRepo.UpdateProfile(ctx, follower.Profile)
+		if err := uc.userRepo.UpdateProfile(ctx, follower.Profile); err != nil {
+			return err
+		}
 	}
 	if followee.Profile != nil {
 		followee.Profile.IncrementFollowers()
-		uc.userRepo.UpdateProfile(ctx, followee.Profile)
+		if err := uc.userRepo.UpdateProfile(ctx, followee.Profile); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -100,11 +104,15 @@ func (uc *FollowUseCase) RemoveFollow(ctx context.Context, followerID, followeeI
 	followee, _ := uc.userRepo.FindByID(ctx, followeeID)
 	if follower != nil && follower.Profile != nil {
 		follower.Profile.DecrementFollowing()
-		uc.userRepo.UpdateProfile(ctx, follower.Profile)
+		if err := uc.userRepo.UpdateProfile(ctx, follower.Profile); err != nil {
+			return err
+		}
 	}
 	if followee != nil && followee.Profile != nil {
 		followee.Profile.DecrementFollowers()
-		uc.userRepo.UpdateProfile(ctx, followee.Profile)
+		if err := uc.userRepo.UpdateProfile(ctx, followee.Profile); err != nil {
+			return err
+		}
 	}
 	return nil
 }
