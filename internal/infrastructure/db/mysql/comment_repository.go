@@ -37,6 +37,13 @@ func (r *commentRepository) FindByItemID(ctx context.Context, itemID int64, limi
 	return comments, err
 }
 
+// CountByItemID はアイテムIDのコメント数をカウントする
+func (r *commentRepository) CountByItemID(ctx context.Context, itemID int64) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&entity.Comment{}).Where("item_id = ? AND is_deleted = false", itemID).Count(&count).Error
+	return int(count), err
+}
+
 // Delete はコメントを削除する
 func (r *commentRepository) Delete(ctx context.Context, commentID, userID int64) error {
 	return r.db.WithContext(ctx).Where("id = ? AND user_id = ?", commentID, userID).Delete(&entity.Comment{}).Error

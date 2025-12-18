@@ -42,13 +42,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     container_name: rpg-market-backend
     ports:
       - "8080:8080"
     env_file:
       - .env
     volumes:
-      # .envで定義したファイル名を使う
+      # 開発用：ソースコードを同期（最低限のファイルのみ）
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+      - ./cmd:/app/cmd
+      - ./internal:/app/internal
+      - ./pkg:/app/pkg
+      - ./scripts:/app/scripts
+      # 設定ファイル
       - ./${FIREBASE_CREDENTIALS_PATH}:/app/credentials/firebase-credentials.json:ro
       - ./${GOOGLE_CLOUD_CREDENTIALS_PATH}:/app/credentials/gcs_credentials.json:ro
     depends_on:

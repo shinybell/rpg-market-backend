@@ -74,7 +74,7 @@ func main() {
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
-	itemUseCase := usecase.NewItemUseCase(itemRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo, commentRepo)
 	likeUseCase := usecase.NewLikeUseCase(likeRepo, itemRepo)
 	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
@@ -156,6 +156,7 @@ func main() {
 		// いいね管理
 		api.POST("/items/:id/likes", likeController.AddLike)
 		api.DELETE("/items/:id/likes", likeController.RemoveLike)
+		api.GET("/items/:id/likes/status", likeController.GetLikeStatus)
 
 		// コメント管理
 		api.POST("/items/:id/comments", commentController.AddComment)

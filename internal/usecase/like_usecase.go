@@ -87,3 +87,8 @@ func (uc *LikeUseCase) RemoveLike(ctx context.Context, userID, itemID int64) err
 	}
 	return nil
 }
+
+// GetLikeStatus はユーザーのアイテムに対するいいね状態を取得する
+func (uc *LikeUseCase) GetLikeStatus(ctx context.Context, userID, itemID int64) (bool, error) {
+	return uc.likeRepo.ExistsByUserAndItem(ctx, userID, itemID)
+}

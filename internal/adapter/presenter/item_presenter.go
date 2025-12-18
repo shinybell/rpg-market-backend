@@ -22,6 +22,7 @@ type ItemResponse struct {
 	PrefectureID     *int                 `json:"prefecture_id,omitempty"`
 	Status           entity.ItemStatus    `json:"status"`
 	LikesCount       int                  `json:"likes_count"`
+	CommentsCount    int                  `json:"comments_count"`
 	ViewCount        int                  `json:"view_count"`
 	Images           []ItemImageResponse  `json:"images,omitempty"`
 	CreatedAt        string               `json:"created_at"`
@@ -53,6 +54,7 @@ func ToItemResponse(item *entity.Item) ItemResponse {
 		PrefectureID:     item.PrefectureID,
 		Status:           item.Status,
 		LikesCount:       item.LikesCount,
+		CommentsCount:    item.CommentsCount,
 		ViewCount:        item.ViewCount,
 		CreatedAt:        item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:        item.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

@@ -83,3 +83,32 @@ func (c *LikeController) RemoveLike(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "unliked"})
 }
+
+// GetLikeStatus はいいね状態を取得する
+func (c *LikeController) GetLikeStatus(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+	userIDInt, ok := userID.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id type"})
+		return
+	}
+
+	itemIDStr := ctx.Param("id")
+	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		return
+	}
+
+	liked, err := c.likeUseCase.GetLikeStatus(ctx.Request.Context(), userIDInt, itemID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"liked": liked})
+}
