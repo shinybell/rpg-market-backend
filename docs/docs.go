@@ -162,6 +162,511 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/items": {
+            "get": {
+                "description": "販売中のアイテム一覧を取得する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム一覧取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "取得件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "オフセット",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/presenter.ItemResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "新しいアイテムを出品する",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム作成",
+                "parameters": [
+                    {
+                        "description": "アイテム情報",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.CreateItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/presenter.ItemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/items/category/{category_id}": {
+            "get": {
+                "description": "指定したカテゴリのアイテム一覧を取得する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "カテゴリ別アイテム一覧取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "カテゴリID",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "取得件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "オフセット",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/presenter.ItemResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/items/search": {
+            "get": {
+                "description": "キーワードでアイテムを検索する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム検索",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "検索キーワード",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "取得件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "オフセット",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/presenter.ItemResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/items/seller/{seller_id}": {
+            "get": {
+                "description": "指定した出品者のアイテム一覧を取得する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "出品者のアイテム一覧取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "出品者ID",
+                        "name": "seller_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "取得件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "オフセット",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/presenter.ItemResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/items/{id}": {
+            "get": {
+                "description": "アイテムの詳細情報を取得する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム詳細取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "アイテムID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/presenter.ItemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "アイテムの情報を更新する（出品者のみ）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム更新",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "アイテムID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新情報",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/presenter.ItemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "アイテムを削除する（出品者のみ）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "アイテム削除",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "アイテムID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users": {
             "delete": {
                 "security": [
@@ -311,6 +816,120 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controller.CreateItemImageReq": {
+            "type": "object",
+            "required": [
+                "image_url"
+            ],
+            "properties": {
+                "display_order": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "image_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.CreateItemRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "condition",
+                "description",
+                "name",
+                "price",
+                "shipping_days",
+                "shipping_payer",
+                "status",
+                "stock"
+            ],
+            "properties": {
+                "brand_id": {
+                    "type": "integer"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "condition": {
+                    "enum": [
+                        "new",
+                        "like_new",
+                        "very_good",
+                        "good",
+                        "acceptable"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ItemCondition"
+                        }
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 10
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controller.CreateItemImageReq"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "prefecture_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "shipping_days": {
+                    "enum": [
+                        "1-2",
+                        "2-3",
+                        "4-7"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ShippingDays"
+                        }
+                    ]
+                },
+                "shipping_method_id": {
+                    "type": "integer"
+                },
+                "shipping_payer": {
+                    "enum": [
+                        "buyer",
+                        "seller"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ShippingPayer"
+                        }
+                    ]
+                },
+                "status": {
+                    "enum": [
+                        "draft",
+                        "on_sale"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ItemStatus"
+                        }
+                    ]
+                },
+                "stock": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
         "controller.LoginRequest": {
             "type": "object",
             "required": [
@@ -321,6 +940,46 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 2
+                }
+            }
+        },
+        "controller.UpdateItemRequest": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "$ref": "#/definitions/entity.ItemCondition"
+                },
+                "description": {
+                    "type": "string",
+                    "minLength": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "prefecture_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "shipping_days": {
+                    "$ref": "#/definitions/entity.ShippingDays"
+                },
+                "shipping_method_id": {
+                    "type": "integer"
+                },
+                "shipping_payer": {
+                    "$ref": "#/definitions/entity.ShippingPayer"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.ItemStatus"
+                },
+                "stock": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -340,6 +999,40 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.ItemCondition": {
+            "type": "string",
+            "enum": [
+                "new",
+                "like_new",
+                "very_good",
+                "good",
+                "acceptable"
+            ],
+            "x-enum-varnames": [
+                "ItemConditionNew",
+                "ItemConditionLikeNew",
+                "ItemConditionVeryGood",
+                "ItemConditionGood",
+                "ItemConditionAcceptable"
+            ]
+        },
+        "entity.ItemStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "on_sale",
+                "trading",
+                "sold_out",
+                "suspended"
+            ],
+            "x-enum-varnames": [
+                "ItemStatusDraft",
+                "ItemStatusOnSale",
+                "ItemStatusTrading",
+                "ItemStatusSoldOut",
+                "ItemStatusSuspended"
+            ]
+        },
         "entity.KYCStatus": {
             "type": "string",
             "enum": [
@@ -353,6 +1046,30 @@ const docTemplate = `{
                 "KYCStatusPending",
                 "KYCStatusVerified",
                 "KYCStatusRejected"
+            ]
+        },
+        "entity.ShippingDays": {
+            "type": "string",
+            "enum": [
+                "1-2",
+                "2-3",
+                "4-7"
+            ],
+            "x-enum-varnames": [
+                "ShippingDays1to2",
+                "ShippingDays2to3",
+                "ShippingDays4to7"
+            ]
+        },
+        "entity.ShippingPayer": {
+            "type": "string",
+            "enum": [
+                "buyer",
+                "seller"
+            ],
+            "x-enum-varnames": [
+                "ShippingPayerBuyer",
+                "ShippingPayerSeller"
             ]
         },
         "entity.User": {
@@ -465,6 +1182,145 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "presenter.ItemImageResponse": {
+            "type": "object",
+            "properties": {
+                "display_order": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "presenter.ItemResponse": {
+            "type": "object",
+            "properties": {
+                "brand_id": {
+                    "type": "integer"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "condition": {
+                    "$ref": "#/definitions/entity.ItemCondition"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/presenter.ItemImageResponse"
+                    }
+                },
+                "likes_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prefecture_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "seller": {
+                    "$ref": "#/definitions/presenter.UserResponse"
+                },
+                "seller_id": {
+                    "type": "integer"
+                },
+                "shipping_days": {
+                    "$ref": "#/definitions/entity.ShippingDays"
+                },
+                "shipping_method_id": {
+                    "type": "integer"
+                },
+                "shipping_payer": {
+                    "$ref": "#/definitions/entity.ShippingPayer"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.ItemStatus"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "presenter.UserProfileResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                }
+            }
+        },
+        "presenter.UserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firebase_uid": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kyc_status": {
+                    "$ref": "#/definitions/entity.KYCStatus"
+                },
+                "profile": {
+                    "$ref": "#/definitions/presenter.UserProfileResponse"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.UserStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wallet": {
+                    "$ref": "#/definitions/presenter.WalletResponse"
+                }
+            }
+        },
+        "presenter.WalletResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "points": {
+                    "type": "number"
                 }
             }
         }

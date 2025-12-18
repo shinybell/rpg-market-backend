@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db/mysql"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/middleware"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/storage"
 	"github.com/shinybell/rpg-market-backend/internal/usecase"
 
 	_ "github.com/shinybell/rpg-market-backend/docs"
@@ -50,12 +52,30 @@ func main() {
 
 	// Initialize repositories
 	userRepo := mysql.NewUserRepository(database.GetDB())
+	itemRepo := mysql.NewItemRepository(database.GetDB())
+
+	// Initialize GCS client
+	ctx := context.Background()
+	gcsClient, err := storage.NewGCSClient(ctx, cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize GCS client: %v", err)
+		// GCS初期化失敗は致命的ではないため、継続
+	} else {
+		defer func() {
+			if err := gcsClient.Close(); err != nil {
+				log.Printf("Error closing GCS client: %v", err)
+			}
+		}()
+	}
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo)
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
+	itemController := controller.NewItemController(itemUseCase, userUseCase)
+	uploadController := controller.NewUploadController(gcsClient)
 
 	// Setup router
 	r := gin.Default()
@@ -80,6 +100,13 @@ func main() {
 	r.GET("/health", handleHealth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Public item routes (認証不要)
+	r.GET("/api/items", itemController.ListItems)
+	r.GET("/api/items/search", itemController.SearchItems) // searchは:idより前に定義
+	r.GET("/api/items/seller/:seller_id", itemController.ListItemsBySeller)
+	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
+	r.GET("/api/items/:id", itemController.GetItem)
+
 	// Protected routes
 	api := r.Group("/api")
 	api.Use(middleware.FirebaseAuth())
@@ -91,6 +118,14 @@ func main() {
 		// ユーザー管理
 		api.PUT("/users/profile", userController.UpdateProfile)
 		api.DELETE("/users", userController.DeleteUser)
+
+		// アイテム管理（認証必須）
+		api.POST("/items", itemController.CreateItem)
+		api.PUT("/items/:id", itemController.UpdateItem)
+		api.DELETE("/items/:id", itemController.DeleteItem)
+
+		// 画像アップロード
+		api.POST("/upload/signed-url", uploadController.GenerateSignedURL)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

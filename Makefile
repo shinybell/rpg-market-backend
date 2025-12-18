@@ -81,6 +81,9 @@ fmt-check: ## フォーマットチェック（CI用）
 	fi
 
 imports: ## import文を整理
-	goimports -w .
+	goimports -local github.com/shinybell/rpg-market-backend -w .
+
+golangci-fix: ## golangci-lintの自動修正を実行
+	golangci-lint run --fix
 
 .DEFAULT_GOAL := help
