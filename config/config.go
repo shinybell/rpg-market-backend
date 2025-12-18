@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Port                       string
 	Environment                string
+	LogLevel                   string
 	DBHost                     string
 	DBPort                     string
 	DBUser                     string
@@ -33,6 +34,7 @@ func Load() *Config {
 	cfg := &Config{
 		Port:                       getEnv("PORT", "8080"),
 		Environment:                getEnv("ENV", "development"),
+		LogLevel:                   getEnv("LOG_LEVEL", "debug"),
 		DBHost:                     getEnv("DB_HOST", "localhost"),
 		DBPort:                     getEnv("DB_PORT", "3306"),
 		DBUser:                     getEnv("DB_USER", "root"),

@@ -86,4 +86,6 @@ imports: ## import文を整理
 golangci-fix: ## golangci-lintの自動修正を実行
 	golangci-lint run --fix
 
+precommit: fmt imports golangci-fix fmt-check ## pre-commitフック用
+
 .DEFAULT_GOAL := help
