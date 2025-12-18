@@ -6,7 +6,7 @@ CREATE TABLE items (
     brand_id BIGINT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+    price BIGINT NOT NULL CHECK (price >= 0),
     stock INT NOT NULL DEFAULT 1 CHECK (stock >= 0),
     `condition` ENUM('new', 'like_new', 'very_good', 'good', 'acceptable') NOT NULL,
     shipping_payer ENUM('buyer', 'seller') DEFAULT 'seller',

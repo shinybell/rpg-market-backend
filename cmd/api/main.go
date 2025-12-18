@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db/mysql"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/middleware"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/storage"
 	"github.com/shinybell/rpg-market-backend/internal/usecase"
 
 	_ "github.com/shinybell/rpg-market-backend/docs"
@@ -50,15 +53,55 @@ func main() {
 
 	// Initialize repositories
 	userRepo := mysql.NewUserRepository(database.GetDB())
+	itemRepo := mysql.NewItemRepository(database.GetDB())
+	likeRepo := mysql.NewLikeRepository(database.GetDB())
+	commentRepo := mysql.NewCommentRepository(database.GetDB())
+	followRepo := mysql.NewFollowRepository(database.GetDB())
+
+	// Initialize GCS client
+	ctx := context.Background()
+	gcsClient, err := storage.NewGCSClient(ctx, cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize GCS client: %v", err)
+		// GCS初期化失敗は致命的ではないため、継続
+	} else {
+		defer func() {
+			if err := gcsClient.Close(); err != nil {
+				log.Printf("Error closing GCS client: %v", err)
+			}
+		}()
+	}
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo, commentRepo)
+	likeUseCase := usecase.NewLikeUseCase(likeRepo, itemRepo)
+	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
+	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
+	itemController := controller.NewItemController(itemUseCase, userUseCase)
+	uploadController := controller.NewUploadController(gcsClient)
+	likeController := controller.NewLikeController(likeUseCase)
+	commentController := controller.NewCommentController(commentUseCase)
+	followController := controller.NewFollowController(followUseCase)
 
 	// Setup router
+	gin.SetMode(cfg.LogLevel)
 	r := gin.Default()
+
+	// Custom logger to include request body for debugging
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		return fmt.Sprintf("[%s] %s %s %d %s %s\n",
+			param.TimeStamp.Format("2006/01/02 15:04:05"),
+			param.Method,
+			param.Path,
+			param.StatusCode,
+			param.Latency,
+			param.Request.UserAgent(),
+		)
+	}))
 
 	// CORS設定（最優先で適用）
 	r.Use(cors.New(cors.Config{
@@ -75,14 +118,24 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Request body logger for debugging
+	r.Use(middleware.RequestBodyLogger())
+
 	// Public routes
 	r.GET("/", handleRoot)
 	r.GET("/health", handleHealth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Public item routes (認証不要)
+	r.GET("/api/items", itemController.ListItems)
+	r.GET("/api/items/search", itemController.SearchItems) // searchは:idより前に定義
+	r.GET("/api/items/seller/:seller_id", itemController.ListItemsBySeller)
+	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
+	r.GET("/api/items/:id", itemController.GetItem)
+
 	// Protected routes
 	api := r.Group("/api")
-	api.Use(middleware.FirebaseAuth())
+	api.Use(middleware.FirebaseAuth(userRepo))
 	{
 		// 認証関連
 		api.POST("/auth/login", userController.Login)
@@ -91,6 +144,28 @@ func main() {
 		// ユーザー管理
 		api.PUT("/users/profile", userController.UpdateProfile)
 		api.DELETE("/users", userController.DeleteUser)
+
+		// アイテム管理（認証必須）
+		api.POST("/items", itemController.CreateItem)
+		api.PUT("/items/:id", itemController.UpdateItem)
+		api.DELETE("/items/:id", itemController.DeleteItem)
+
+		// 画像アップロード
+		api.POST("/upload/signed-url", uploadController.GenerateSignedURL)
+
+		// いいね管理
+		api.POST("/items/:id/likes", likeController.AddLike)
+		api.DELETE("/items/:id/likes", likeController.RemoveLike)
+		api.GET("/items/:id/likes/status", likeController.GetLikeStatus)
+
+		// コメント管理
+		api.POST("/items/:id/comments", commentController.AddComment)
+		api.GET("/items/:id/comments", commentController.GetComments)
+		api.DELETE("/comments/:comment_id", commentController.DeleteComment)
+
+		// フォロー管理
+		api.POST("/users/:id/follow", followController.AddFollow)
+		api.DELETE("/users/:id/follow", followController.RemoveFollow)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)
