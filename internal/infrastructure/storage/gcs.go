@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/shinybell/rpg-market-backend/config"
 	"google.golang.org/api/option"
+
+	"github.com/shinybell/rpg-market-backend/config"
 )
 
 // GCSClient はGoogle Cloud Storageのクライアント
