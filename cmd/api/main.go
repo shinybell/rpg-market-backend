@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -53,6 +54,9 @@ func main() {
 	// Initialize repositories
 	userRepo := mysql.NewUserRepository(database.GetDB())
 	itemRepo := mysql.NewItemRepository(database.GetDB())
+	likeRepo := mysql.NewLikeRepository(database.GetDB())
+	commentRepo := mysql.NewCommentRepository(database.GetDB())
+	followRepo := mysql.NewFollowRepository(database.GetDB())
 
 	// Initialize GCS client
 	ctx := context.Background()
@@ -70,15 +74,34 @@ func main() {
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
-	itemUseCase := usecase.NewItemUseCase(itemRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo, commentRepo)
+	likeUseCase := usecase.NewLikeUseCase(likeRepo, itemRepo)
+	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
+	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
 	itemController := controller.NewItemController(itemUseCase, userUseCase)
 	uploadController := controller.NewUploadController(gcsClient)
+	likeController := controller.NewLikeController(likeUseCase)
+	commentController := controller.NewCommentController(commentUseCase)
+	followController := controller.NewFollowController(followUseCase)
 
 	// Setup router
+	gin.SetMode(cfg.LogLevel)
 	r := gin.Default()
+
+	// Custom logger to include request body for debugging
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		return fmt.Sprintf("[%s] %s %s %d %s %s\n",
+			param.TimeStamp.Format("2006/01/02 15:04:05"),
+			param.Method,
+			param.Path,
+			param.StatusCode,
+			param.Latency,
+			param.Request.UserAgent(),
+		)
+	}))
 
 	// CORS設定（最優先で適用）
 	r.Use(cors.New(cors.Config{
@@ -95,6 +118,9 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Request body logger for debugging
+	r.Use(middleware.RequestBodyLogger())
+
 	// Public routes
 	r.GET("/", handleRoot)
 	r.GET("/health", handleHealth)
@@ -109,7 +135,7 @@ func main() {
 
 	// Protected routes
 	api := r.Group("/api")
-	api.Use(middleware.FirebaseAuth())
+	api.Use(middleware.FirebaseAuth(userRepo))
 	{
 		// 認証関連
 		api.POST("/auth/login", userController.Login)
@@ -126,6 +152,20 @@ func main() {
 
 		// 画像アップロード
 		api.POST("/upload/signed-url", uploadController.GenerateSignedURL)
+
+		// いいね管理
+		api.POST("/items/:id/likes", likeController.AddLike)
+		api.DELETE("/items/:id/likes", likeController.RemoveLike)
+		api.GET("/items/:id/likes/status", likeController.GetLikeStatus)
+
+		// コメント管理
+		api.POST("/items/:id/comments", commentController.AddComment)
+		api.GET("/items/:id/comments", commentController.GetComments)
+		api.DELETE("/comments/:comment_id", commentController.DeleteComment)
+
+		// フォロー管理
+		api.POST("/users/:id/follow", followController.AddFollow)
+		api.DELETE("/users/:id/follow", followController.RemoveFollow)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

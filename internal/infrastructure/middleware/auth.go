@@ -8,11 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/shinybell/rpg-market-backend/internal/domain/repository"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 )
 
 // FirebaseAuth はFirebase認証を検証するミドルウェア
-func FirebaseAuth() gin.HandlerFunc {
+func FirebaseAuth(userRepo repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// OPTIONSリクエスト（プリフライト）はスキップ
 		if c.Request.Method == "OPTIONS" {
@@ -73,9 +74,31 @@ func FirebaseAuth() gin.HandlerFunc {
 
 		log.Printf("[AUTH] Token verified successfully for UID: %s", token.UID)
 
+		// データベースからユーザー情報を取得
+		user, err := userRepo.FindByFirebaseUID(context.Background(), token.UID)
+		if err != nil {
+			log.Printf("[AUTH] Failed to find user by Firebase UID: %v", err)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "User not found",
+			})
+			c.Abort()
+			return
+		}
+		if user == nil {
+			log.Printf("[AUTH] User not found for UID: %s", token.UID)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "User not found",
+			})
+			c.Abort()
+			return
+		}
+
+		log.Printf("[AUTH] User found: ID=%d, Email=%s", user.ID, user.Email)
+
 		// ユーザー情報をコンテキストに保存
 		c.Set("firebase_uid", token.UID)
 		c.Set("email", token.Claims["email"])
+		c.Set("user_id", user.ID)
 
 		c.Next()
 	}

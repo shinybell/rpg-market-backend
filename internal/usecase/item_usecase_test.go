@@ -19,6 +19,55 @@ func NewMockItemRepository() *MockItemRepository {
 	}
 }
 
+// MockCommentRepository はCommentRepositoryのモック実装
+type MockCommentRepository struct {
+	comments map[int64][]*entity.Comment
+}
+
+func NewMockCommentRepository() *MockCommentRepository {
+	return &MockCommentRepository{
+		comments: make(map[int64][]*entity.Comment),
+	}
+}
+
+func (r *MockCommentRepository) CountByItemID(ctx context.Context, itemID int64) (int, error) {
+	comments, exists := r.comments[itemID]
+	if !exists {
+		return 0, nil
+	}
+	return len(comments), nil
+}
+
+func (r *MockCommentRepository) Create(ctx context.Context, comment *entity.Comment) error {
+	if r.comments[comment.ItemID] == nil {
+		r.comments[comment.ItemID] = []*entity.Comment{}
+	}
+	comment.ID = int64(len(r.comments[comment.ItemID]) + 1)
+	r.comments[comment.ItemID] = append(r.comments[comment.ItemID], comment)
+	return nil
+}
+
+func (r *MockCommentRepository) FindByItemID(ctx context.Context, itemID int64, limit, offset int) ([]*entity.Comment, error) {
+	comments, exists := r.comments[itemID]
+	if !exists {
+		return []*entity.Comment{}, nil
+	}
+	return comments, nil
+}
+
+func (r *MockCommentRepository) Delete(ctx context.Context, commentID, userID int64) error {
+	// Simple implementation: just remove from all items
+	for itemID, comments := range r.comments {
+		for i, comment := range comments {
+			if comment.ID == commentID && comment.UserID == userID {
+				r.comments[itemID] = append(comments[:i], comments[i+1:]...)
+				return nil
+			}
+		}
+	}
+	return nil
+}
+
 func (r *MockItemRepository) Create(ctx context.Context, item *entity.Item) error {
 	item.ID = int64(len(r.items) + 1)
 	r.items[item.ID] = item
@@ -102,7 +151,8 @@ func (r *MockItemRepository) IncrementViewCount(ctx context.Context, itemID int6
 
 func TestCreateItem(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -127,7 +177,8 @@ func TestCreateItem(t *testing.T) {
 
 func TestCreateItemWithInvalidName(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -148,7 +199,8 @@ func TestCreateItemWithInvalidName(t *testing.T) {
 
 func TestCreateItemWithInvalidPrice(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -169,7 +221,8 @@ func TestCreateItemWithInvalidPrice(t *testing.T) {
 
 func TestGetItemByID(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -197,7 +250,8 @@ func TestGetItemByID(t *testing.T) {
 
 func TestGetItemByIDNotFound(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	_, err := uc.GetItemByID(context.Background(), 999)
 	if err != ErrItemNotFound {
@@ -207,7 +261,8 @@ func TestGetItemByIDNotFound(t *testing.T) {
 
 func TestUpdateItem(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -243,7 +298,8 @@ func TestUpdateItem(t *testing.T) {
 
 func TestUpdateItemUnauthorized(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -269,7 +325,8 @@ func TestUpdateItemUnauthorized(t *testing.T) {
 
 func TestDeleteItem(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -299,7 +356,8 @@ func TestDeleteItem(t *testing.T) {
 
 func TestDeleteItemUnauthorized(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -324,7 +382,8 @@ func TestDeleteItemUnauthorized(t *testing.T) {
 
 func TestPurchaseItem(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item
 	item := &entity.Item{
@@ -354,7 +413,8 @@ func TestPurchaseItem(t *testing.T) {
 
 func TestPurchaseItemOutOfStock(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create test item with 1 stock
 	item := &entity.Item{
@@ -381,7 +441,8 @@ func TestPurchaseItemOutOfStock(t *testing.T) {
 
 func TestGetItemsBySeller(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create multiple items for seller 1
 	for i := 0; i < 3; i++ {
@@ -411,7 +472,8 @@ func TestGetItemsBySeller(t *testing.T) {
 
 func TestGetItemsByCategory(t *testing.T) {
 	repo := NewMockItemRepository()
-	uc := NewItemUseCase(repo)
+	commentRepo := NewMockCommentRepository()
+	uc := NewItemUseCase(repo, commentRepo)
 
 	// Create items in category 1
 	for i := 0; i < 2; i++ {

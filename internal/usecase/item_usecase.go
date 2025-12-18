@@ -15,13 +15,15 @@ var (
 )
 
 type ItemUseCase struct {
-	itemRepo repository.ItemRepository
+	itemRepo    repository.ItemRepository
+	commentRepo repository.CommentRepository
 }
 
 // NewItemUseCase はItemUseCaseを生成する
-func NewItemUseCase(itemRepo repository.ItemRepository) *ItemUseCase {
+func NewItemUseCase(itemRepo repository.ItemRepository, commentRepo repository.CommentRepository) *ItemUseCase {
 	return &ItemUseCase{
-		itemRepo: itemRepo,
+		itemRepo:    itemRepo,
+		commentRepo: commentRepo,
 	}
 }
 
@@ -56,6 +58,16 @@ func (uc *ItemUseCase) GetItemByID(ctx context.Context, itemID int64) (*entity.I
 	}
 	if item == nil {
 		return nil, ErrItemNotFound
+	}
+
+	// コメント数をカウントして設定
+	commentsCount, err := uc.commentRepo.CountByItemID(ctx, itemID)
+	if err != nil {
+		log.Printf("Failed to count comments for item %d: %v", itemID, err)
+		// エラーが発生しても処理を続行（コメント数0として扱う）
+		item.CommentsCount = 0
+	} else {
+		item.CommentsCount = commentsCount
 	}
 
 	// 閲覧数を増やす（非同期で行う）

@@ -66,6 +66,7 @@ type Item struct {
 	PrefectureID     *int          `json:"prefecture_id,omitempty"`
 	Status           ItemStatus    `json:"status" gorm:"type:enum('draft','on_sale','trading','sold_out','suspended');default:'on_sale'"`
 	LikesCount       int           `json:"likes_count" gorm:"default:0"`
+	CommentsCount    int           `json:"comments_count" gorm:"default:0"`
 	ViewCount        int           `json:"view_count" gorm:"default:0"`
 	CreatedAt        time.Time     `json:"created_at"`
 	UpdatedAt        time.Time     `json:"updated_at"`
