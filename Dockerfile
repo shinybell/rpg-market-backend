@@ -14,10 +14,10 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Copy credentials
-COPY ./credentials ./credentials
-
 FROM base AS development
+
+# credentialsディレクトリは開発用のみにCOPY
+COPY ./credentials ./credentials
 
 EXPOSE 8080
 
@@ -25,6 +25,9 @@ EXPOSE 8080
 CMD ["go", "run", "./cmd/api"]
 
 FROM base AS builder
+
+# credentialsディレクトリはビルド用のみにCOPY
+COPY ./credentials ./credentials
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
@@ -41,8 +44,7 @@ COPY --from=builder /app/main .
 # Copy swagger docs
 COPY --from=builder /app/docs ./docs
 
-# Copy credentials
-# COPY --from=builder /app/credentials ./credentials
+# 本番環境ではcredentialsコピーしない
 
 EXPOSE 8080
 
