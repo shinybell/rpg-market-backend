@@ -42,7 +42,7 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/docs ./docs
 
 # Copy credentials
-COPY --from=builder /app/credentials ./credentials
+# COPY --from=builder /app/credentials ./credentials
 
 EXPOSE 8080
 
