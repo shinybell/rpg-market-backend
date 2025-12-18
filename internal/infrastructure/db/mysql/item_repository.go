@@ -40,6 +40,7 @@ func (r *itemRepository) FindByID(ctx context.Context, id int64) (*entity.Item, 
 	var item entity.Item
 	err := r.db.WithContext(ctx).
 		Preload("Seller").
+		Preload("Seller.Profile").
 		Preload("Images", func(db *gorm.DB) *gorm.DB {
 			return db.Order("display_order ASC")
 		}).
