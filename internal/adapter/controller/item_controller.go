@@ -37,6 +37,7 @@ type CreateItemRequest struct {
 	ShippingDays     entity.ShippingDays  `json:"shipping_days" binding:"required,oneof=1-2 2-3 4-7"`
 	PrefectureID     *int                 `json:"prefecture_id,omitempty"`
 	Status           entity.ItemStatus    `json:"status" binding:"required,oneof=draft on_sale"`
+	ImageURL         string               `json:"image_url,omitempty"`
 	Images           []CreateItemImageReq `json:"images,omitempty"`
 }
 
@@ -109,7 +110,14 @@ func (ctrl *ItemController) CreateItem(c *gin.Context) {
 	}
 
 	// 画像を追加
-	if len(req.Images) > 0 {
+	if req.ImageURL != "" {
+		item.Images = []entity.ItemImage{
+			{
+				ImageURL:     req.ImageURL,
+				DisplayOrder: 0,
+			},
+		}
+	} else if len(req.Images) > 0 {
 		images := make([]entity.ItemImage, len(req.Images))
 		for i, img := range req.Images {
 			images[i] = entity.ItemImage{

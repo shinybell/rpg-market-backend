@@ -9,16 +9,18 @@ import (
 )
 
 type Config struct {
-	Port                    string
-	Environment             string
-	DBHost                  string
-	DBPort                  string
-	DBUser                  string
-	DBPassword              string
-	DBName                  string
-	JWTSecret               string
-	FirebaseCredentialsPath string
-	VercelDeployURL         string
+	Port                       string
+	Environment                string
+	DBHost                     string
+	DBPort                     string
+	DBUser                     string
+	DBPassword                 string
+	DBName                     string
+	JWTSecret                  string
+	FirebaseCredentialsPath    string
+	VercelDeployURL            string
+	GoogleCloudCredentialsPath string
+	GCSBucketName              string
 }
 
 func Load() *Config {
@@ -29,16 +31,18 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		Port:                    getEnv("PORT", "8080"),
-		Environment:             getEnv("ENV", "development"),
-		DBHost:                  getEnv("DB_HOST", "localhost"),
-		DBPort:                  getEnv("DB_PORT", "3306"),
-		DBUser:                  getEnv("DB_USER", "root"),
-		DBPassword:              getEnv("DB_PASSWORD", ""),
-		DBName:                  getEnv("DB_NAME", "rpg_market"),
-		JWTSecret:               getEnv("JWT_SECRET", "your-secret-key"),
-		FirebaseCredentialsPath: getFirebaseCredentialsPath(),
-		VercelDeployURL:         getEnv("VERCEL_DEPLOY_URL", ""),
+		Port:                       getEnv("PORT", "8080"),
+		Environment:                getEnv("ENV", "development"),
+		DBHost:                     getEnv("DB_HOST", "localhost"),
+		DBPort:                     getEnv("DB_PORT", "3306"),
+		DBUser:                     getEnv("DB_USER", "root"),
+		DBPassword:                 getEnv("DB_PASSWORD", ""),
+		DBName:                     getEnv("DB_NAME", "rpg_market"),
+		JWTSecret:                  getEnv("JWT_SECRET", "your-secret-key"),
+		FirebaseCredentialsPath:    getFirebaseCredentialsPath(),
+		VercelDeployURL:            getEnv("VERCEL_DEPLOY_URL", ""),
+		GoogleCloudCredentialsPath: getGoogleCloudCredentialsPath(),
+		GCSBucketName:              getEnv("GCS_BUCKET_NAME", "rpg-market-images"),
 	}
 
 	return cfg
@@ -53,7 +57,19 @@ func getFirebaseCredentialsPath() string {
 	}
 
 	// 開発環境: .envまたは環境変数から取得
-	return getEnv("FIREBASE_CREDENTIALS_PATH", "firebase-credentials.json")
+	return getEnv("FIREBASE_CREDENTIALS_PATH", "credentials/firebase-credentials.json")
+}
+
+func getGoogleCloudCredentialsPath() string {
+	env := getEnv("ENV", "development")
+
+	if env == "production" {
+		// 本番環境: Secret Managerからマウントされたパス
+		return "/secrets/gcs-credentials/gcs_credentials"
+	}
+
+	// 開発環境: .envまたは環境変数から取得
+	return getEnv("GOOGLE_CLOUD_CREDENTIALS_PATH", "credentials/gcs_credentials.json")
 }
 
 // Cloud SQL Unix Socket接続に対応

@@ -21,7 +21,18 @@ func NewItemRepository(db *gorm.DB) repository.ItemRepository {
 
 // Create はアイテムを作成する
 func (r *itemRepository) Create(ctx context.Context, item *entity.Item) error {
-	return r.db.WithContext(ctx).Create(item).Error
+	tx := r.db.WithContext(ctx).Begin()
+	if err := tx.Create(item).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if len(item.Images) > 0 {
+		if err := tx.Model(item).Association("Images").Append(item.Images); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit().Error
 }
 
 // FindByID はIDでアイテムを検索する
