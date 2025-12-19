@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/shinybell/rpg-market-backend/internal/domain/entity"
@@ -15,15 +16,25 @@ var (
 )
 
 type ItemUseCase struct {
-	itemRepo    repository.ItemRepository
-	commentRepo repository.CommentRepository
+	itemRepo            repository.ItemRepository
+	commentRepo         repository.CommentRepository
+	transactionRepo     repository.TransactionRepository
+	walletRepo          repository.WalletRepository
+	notificationRepo    repository.NotificationRepository
+	addressRepo         repository.AddressRepository
+	notificationUseCase *NotificationUseCase
 }
 
 // NewItemUseCase はItemUseCaseを生成する
-func NewItemUseCase(itemRepo repository.ItemRepository, commentRepo repository.CommentRepository) *ItemUseCase {
+func NewItemUseCase(itemRepo repository.ItemRepository, commentRepo repository.CommentRepository, transactionRepo repository.TransactionRepository, walletRepo repository.WalletRepository, notificationRepo repository.NotificationRepository, addressRepo repository.AddressRepository, notificationUseCase *NotificationUseCase) *ItemUseCase {
 	return &ItemUseCase{
-		itemRepo:    itemRepo,
-		commentRepo: commentRepo,
+		itemRepo:            itemRepo,
+		commentRepo:         commentRepo,
+		transactionRepo:     transactionRepo,
+		walletRepo:          walletRepo,
+		notificationRepo:    notificationRepo,
+		addressRepo:         addressRepo,
+		notificationUseCase: notificationUseCase,
 	}
 }
 
@@ -163,8 +174,14 @@ func (uc *ItemUseCase) DeleteItem(ctx context.Context, itemID, userID int64) err
 	return nil
 }
 
+// MockPayment は決済をモックする（常時成功）
+func (uc *ItemUseCase) MockPayment(ctx context.Context, amount int64) error {
+	log.Printf("Mock payment processed for amount: %d", amount)
+	return nil
+}
+
 // PurchaseItem はアイテムを購入する
-func (uc *ItemUseCase) PurchaseItem(ctx context.Context, itemID, buyerID int64) error {
+func (uc *ItemUseCase) PurchaseItem(ctx context.Context, itemID, buyerID, addressID int64, paymentMethod string, pointsUsed int64) error {
 	// アイテムを取得
 	item, err := uc.itemRepo.FindByID(ctx, itemID)
 	if err != nil {
@@ -179,17 +196,133 @@ func (uc *ItemUseCase) PurchaseItem(ctx context.Context, itemID, buyerID int64) 
 		return ErrItemNotForSale
 	}
 
-	// 在庫を減らす
-	if err := item.DecrementStock(); err != nil {
+	// 配送先を取得
+	address, err := uc.addressRepo.FindByID(ctx, addressID)
+	if err != nil {
+		return err
+	}
+	if address == nil || address.UserID != buyerID {
+		return errors.New("invalid address")
+	}
+
+	// ウォレットを取得
+	buyerWallet, err := uc.walletRepo.FindByUserID(ctx, buyerID)
+	if err != nil {
+		return err
+	}
+	if buyerWallet == nil {
+		return errors.New("buyer wallet not found")
+	}
+
+	sellerWallet, err := uc.walletRepo.FindByUserID(ctx, item.SellerID)
+	if err != nil {
+		return err
+	}
+	if sellerWallet == nil {
+		return errors.New("seller wallet not found")
+	}
+
+	// ポイント使用チェック
+	if pointsUsed < 0 || buyerWallet.Points < pointsUsed {
+		return entity.ErrInsufficientPoints
+	}
+
+	// 最終価格計算
+	finalPrice := item.Price - pointsUsed
+	if finalPrice < 0 {
+		finalPrice = 0
+	}
+
+	// 残高チェック
+	if buyerWallet.Balance < finalPrice {
+		return entity.ErrInsufficientBalance
+	}
+
+	// 決済モック
+	err = uc.MockPayment(ctx, finalPrice)
+	if err != nil {
 		return err
 	}
 
-	// 在庫を更新
-	if err := uc.itemRepo.Update(ctx, item); err != nil {
-		log.Printf("Failed to update item stock: %v", err)
+	// トランザクション作成
+	tx := &entity.Transaction{
+		ItemID:            itemID,
+		BuyerID:           buyerID,
+		SellerID:          item.SellerID,
+		Price:             item.Price,
+		FeeAmount:         0, // TODO: 手数料計算
+		ProfitAmount:      finalPrice,
+		PaymentStatus:     entity.PaymentStatusCaptured,
+		TransactionStatus: entity.TransactionStatusAwaitingShip,
+		PaymentMethod:     paymentMethod,
+	}
+	err = uc.transactionRepo.Create(ctx, tx)
+	if err != nil {
 		return err
 	}
 
-	log.Printf("Item purchased: ID %d, Buyer: %d, Remaining stock: %d", itemID, buyerID, item.Stock)
+	// ウォレット更新
+	err = buyerWallet.Withdraw(finalPrice)
+	if err != nil {
+		return err
+	}
+	buyerWallet.Points -= pointsUsed
+	err = uc.walletRepo.Update(ctx, buyerWallet)
+	if err != nil {
+		return err
+	}
+
+	err = sellerWallet.Deposit(finalPrice)
+	if err != nil {
+		return err
+	}
+	err = uc.walletRepo.Update(ctx, sellerWallet)
+	if err != nil {
+		return err
+	}
+
+	// アイテム更新
+	err = item.DecrementStock()
+	if err != nil {
+		return err
+	}
+	if item.Stock == 0 {
+		item.Status = entity.ItemStatusSoldOut
+	}
+	err = uc.itemRepo.Update(ctx, item)
+	if err != nil {
+		return err
+	}
+
+	// 通知作成
+	buyerNotification := &entity.Notification{
+		UserID:    buyerID,
+		Type:      "purchase",
+		Title:     "購入完了",
+		Content:   fmt.Sprintf("アイテム %s を購入しました", item.Name),
+		RelatedID: &tx.ID,
+	}
+	err = uc.notificationRepo.Create(ctx, buyerNotification)
+	if err != nil {
+		log.Printf("Failed to create buyer notification: %v", err)
+	}
+
+	sellerNotification := &entity.Notification{
+		UserID:    item.SellerID,
+		Type:      "sale",
+		Title:     "販売完了",
+		Content:   fmt.Sprintf("アイテム %s が売れました", item.Name),
+		RelatedID: &tx.ID,
+	}
+	err = uc.notificationRepo.Create(ctx, sellerNotification)
+	if err != nil {
+		log.Printf("Failed to create seller notification: %v", err)
+	}
+
+	// メール通知モック TODO
+	uc.notificationUseCase.SendPurchaseEmail(ctx, buyerID, item.Name)
+	uc.notificationUseCase.SendSaleEmail(ctx, item.SellerID, item.Name)
+
+	log.Printf("Purchase completed: Item %d, Buyer %d, Seller %d", itemID, buyerID, item.SellerID)
 	return nil
 }

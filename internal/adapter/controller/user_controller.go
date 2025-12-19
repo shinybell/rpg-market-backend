@@ -87,7 +87,6 @@ func (ctrl *UserController) Login(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} entity.User
 // @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
 // @Router /api/auth/me [get]
@@ -101,7 +100,7 @@ func (ctrl *UserController) GetMe(c *gin.Context) {
 	user, err := ctrl.userUseCase.GetUserByFirebaseUID(c.Request.Context(), firebaseUID.(string))
 	if err != nil {
 		if err == usecase.ErrUserNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			c.JSON(http.StatusOK, gin.H{"registered": false})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

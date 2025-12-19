@@ -5,6 +5,7 @@
 *.so
 *.so.*
 *.dylib
+bin/
 
 # Test binary, built with `go test -c`
 *.test
@@ -33,6 +34,11 @@ Thumbs.db
 # Local environment files
 .env
 .env.local
+.env.cloudsql
 
 # Credentials
 credentials/
+
+.air.toml
+
+coverage.html
