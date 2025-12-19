@@ -2,9 +2,6 @@
 
 FROM golang:1.25 AS base
 
-ARG ENV=production
-ARG TARGET_STAGE=runtime
-
 WORKDIR /app
 
 # Copy go mod files
@@ -14,16 +11,13 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Copy credentials
-COPY ./credentials ./credentials
-
 FROM base AS development
 
 RUN go install github.com/air-verse/air@latest
 
 EXPOSE 8080
 
-CMD ["air", "-c", ".air.toml"]
+CMD ["go", "run", "./cmd/api"]
 
 FROM base AS builder
 
@@ -41,9 +35,6 @@ COPY --from=builder /app/main .
 
 # Copy swagger docs
 COPY --from=builder /app/docs ./docs
-
-# Copy credentials
-# COPY --from=builder /app/credentials ./credentials
 
 EXPOSE 8080
 
