@@ -19,10 +19,11 @@ COPY ./credentials ./credentials
 
 FROM base AS development
 
+RUN go install github.com/air-verse/air@latest
+
 EXPOSE 8080
 
-# 開発時はgo runでホットリロード
-CMD ["go", "run", "./cmd/api"]
+CMD ["air", "-c", ".air.toml"]
 
 FROM base AS builder
 

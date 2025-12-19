@@ -145,21 +145,46 @@ func (r *itemRepository) Search(ctx context.Context, keyword string, limit, offs
 
 // Update はアイテム情報を更新する
 func (r *itemRepository) Update(ctx context.Context, item *entity.Item) error {
-	return r.db.WithContext(ctx).
-		Model(item).
-		Updates(map[string]interface{}{
-			"name":               item.Name,
-			"description":        item.Description,
-			"price":              item.Price,
-			"stock":              item.Stock,
-			"condition":          item.Condition,
-			"shipping_payer":     item.ShippingPayer,
-			"shipping_method_id": item.ShippingMethodID,
-			"shipping_days":      item.ShippingDays,
-			"prefecture_id":      item.PrefectureID,
-			"status":             item.Status,
-			"updated_at":         time.Now(),
-		}).Error
+	// トランザクション内で更新
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// アイテム情報を更新
+		if err := tx.Model(item).
+			Updates(map[string]interface{}{
+				"name":               item.Name,
+				"description":        item.Description,
+				"price":              item.Price,
+				"stock":              item.Stock,
+				"condition":          item.Condition,
+				"shipping_payer":     item.ShippingPayer,
+				"shipping_method_id": item.ShippingMethodID,
+				"shipping_days":      item.ShippingDays,
+				"prefecture_id":      item.PrefectureID,
+				"status":             item.Status,
+				"updated_at":         time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+
+		// 画像が指定されている場合は既存の画像を削除して新しい画像を追加
+		if item.Images != nil {
+			// 既存の画像を削除
+			if err := tx.Where("item_id = ?", item.ID).Delete(&entity.ItemImage{}).Error; err != nil {
+				return err
+			}
+
+			// 新しい画像を追加
+			if len(item.Images) > 0 {
+				for i := range item.Images {
+					item.Images[i].ItemID = item.ID
+				}
+				if err := tx.Create(&item.Images).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 // Delete はアイテムを論理削除する
