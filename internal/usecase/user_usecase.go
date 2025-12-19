@@ -7,6 +7,7 @@ import (
 
 	"github.com/shinybell/rpg-market-backend/internal/domain/entity"
 	"github.com/shinybell/rpg-market-backend/internal/domain/repository"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 )
 
 var (
@@ -39,10 +40,27 @@ func (uc *UserUseCase) LoginOrRegister(ctx context.Context, firebaseUID, email, 
 		return nil, err
 	}
 
-	// ユーザーが存在する場合: 最終ログイン時刻を更新
+	// ユーザーが存在する場合
 	if user != nil {
+		// 削除済みユーザーのチェック
+		if user.DeletedAt != nil {
+			return nil, errors.New("このアカウントは削除されています。復活を希望する場合はサポートにお問い合わせください")
+		}
+
+		// 最終ログイン時刻を更新
 		if err := uc.userRepo.UpdateLastLogin(ctx, user.ID); err != nil {
 			log.Printf("Failed to update last login: %v", err)
+		}
+		// Set custom claims to indicate user is registered
+		client := auth.GetClient()
+		if client != nil {
+			err = client.GetAuthClient().SetCustomUserClaims(ctx, firebaseUID, map[string]interface{}{
+				"registered": true,
+			})
+			if err != nil {
+				log.Printf("Failed to set custom claims for user %s: %v", firebaseUID, err)
+				// Don't fail the login, just log the error
+			}
 		}
 		log.Printf("User logged in: %s (ID: %d)", email, user.ID)
 		return user, nil
@@ -63,6 +81,18 @@ func (uc *UserUseCase) LoginOrRegister(ctx context.Context, firebaseUID, email, 
 		return nil, err
 	}
 
+	// Set custom claims to indicate user is registered
+	client := auth.GetClient()
+	if client != nil {
+		err = client.GetAuthClient().SetCustomUserClaims(ctx, firebaseUID, map[string]interface{}{
+			"registered": true,
+		})
+		if err != nil {
+			log.Printf("Failed to set custom claims for user %s: %v", firebaseUID, err)
+			// Don't fail the registration, just log the error
+		}
+	}
+
 	log.Printf("New user registered: %s (ID: %d, Firebase UID: %s)", email, newUser.ID, firebaseUID)
 	return newUser, nil
 }
@@ -75,6 +105,10 @@ func (uc *UserUseCase) GetUserByFirebaseUID(ctx context.Context, firebaseUID str
 	}
 	if user == nil {
 		return nil, ErrUserNotFound
+	}
+	// 削除済みユーザーのチェック
+	if user.DeletedAt != nil {
+		return nil, errors.New("このアカウントは削除されています")
 	}
 	return user, nil
 }

@@ -152,7 +152,7 @@ func (r *MockItemRepository) IncrementViewCount(ctx context.Context, itemID int6
 func TestCreateItem(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -178,7 +178,7 @@ func TestCreateItem(t *testing.T) {
 func TestCreateItemWithInvalidName(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -200,7 +200,7 @@ func TestCreateItemWithInvalidName(t *testing.T) {
 func TestCreateItemWithInvalidPrice(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	item := &entity.Item{
 		SellerID:    1,
@@ -222,7 +222,7 @@ func TestCreateItemWithInvalidPrice(t *testing.T) {
 func TestGetItemByID(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create test item
 	item := &entity.Item{
@@ -251,7 +251,7 @@ func TestGetItemByID(t *testing.T) {
 func TestGetItemByIDNotFound(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	_, err := uc.GetItemByID(context.Background(), 999)
 	if err != ErrItemNotFound {
@@ -262,7 +262,7 @@ func TestGetItemByIDNotFound(t *testing.T) {
 func TestUpdateItem(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create test item
 	item := &entity.Item{
@@ -299,7 +299,7 @@ func TestUpdateItem(t *testing.T) {
 func TestUpdateItemUnauthorized(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create test item
 	item := &entity.Item{
@@ -326,7 +326,7 @@ func TestUpdateItemUnauthorized(t *testing.T) {
 func TestDeleteItem(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create test item
 	item := &entity.Item{
@@ -357,7 +357,7 @@ func TestDeleteItem(t *testing.T) {
 func TestDeleteItemUnauthorized(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create test item
 	item := &entity.Item{
@@ -380,69 +380,10 @@ func TestDeleteItemUnauthorized(t *testing.T) {
 	}
 }
 
-func TestPurchaseItem(t *testing.T) {
-	repo := NewMockItemRepository()
-	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
-
-	// Create test item
-	item := &entity.Item{
-		SellerID:    1,
-		CategoryID:  1,
-		Name:        "Test Item",
-		Description: "This is a test item description.",
-		Price:       1000,
-		Stock:       5,
-		Condition:   entity.ItemConditionNew,
-		Status:      entity.ItemStatusOnSale,
-	}
-	_ = uc.CreateItem(context.Background(), item)
-
-	// Purchase item
-	err := uc.PurchaseItem(context.Background(), item.ID, 2)
-	if err != nil {
-		t.Fatalf("Failed to purchase item: %v", err)
-	}
-
-	// Verify stock decreased
-	updated, _ := uc.GetItemByID(context.Background(), item.ID)
-	if updated.Stock != 4 {
-		t.Errorf("Expected stock 4, got %d", updated.Stock)
-	}
-}
-
-func TestPurchaseItemOutOfStock(t *testing.T) {
-	repo := NewMockItemRepository()
-	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
-
-	// Create test item with 1 stock
-	item := &entity.Item{
-		SellerID:    1,
-		CategoryID:  1,
-		Name:        "Test Item",
-		Description: "This is a test item description.",
-		Price:       1000,
-		Stock:       1,
-		Condition:   entity.ItemConditionNew,
-		Status:      entity.ItemStatusOnSale,
-	}
-	_ = uc.CreateItem(context.Background(), item)
-
-	// Purchase first time (should succeed)
-	_ = uc.PurchaseItem(context.Background(), item.ID, 2)
-
-	// Try to purchase again (should fail with out of stock)
-	err := uc.PurchaseItem(context.Background(), item.ID, 3)
-	if err != ErrItemNotForSale && err != entity.ErrOutOfStock {
-		t.Errorf("Expected ErrItemNotForSale or ErrOutOfStock, got: %v", err)
-	}
-}
-
 func TestGetItemsBySeller(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create multiple items for seller 1
 	for i := 0; i < 3; i++ {
@@ -473,7 +414,7 @@ func TestGetItemsBySeller(t *testing.T) {
 func TestGetItemsByCategory(t *testing.T) {
 	repo := NewMockItemRepository()
 	commentRepo := NewMockCommentRepository()
-	uc := NewItemUseCase(repo, commentRepo)
+	uc := NewItemUseCase(repo, commentRepo, &MockTransactionRepository{}, NewMockWalletRepository(), &MockNotificationRepository{}, NewMockAddressRepository(), &NotificationUseCase{&MockNotificationRepository{}})
 
 	// Create items in category 1
 	for i := 0; i < 2; i++ {
@@ -511,5 +452,180 @@ func TestGetItemsByCategory(t *testing.T) {
 
 	if len(items) != 2 {
 		t.Errorf("Expected 2 items in category 1, got %d", len(items))
+	}
+}
+
+// MockTransactionRepository はTransactionRepositoryのモック実装
+type MockTransactionRepository struct{}
+
+func (r *MockTransactionRepository) Create(ctx context.Context, tx *entity.Transaction) error {
+	return nil
+}
+
+func (r *MockTransactionRepository) FindByID(ctx context.Context, id int64) (*entity.Transaction, error) {
+	return nil, nil
+}
+
+func (r *MockTransactionRepository) Update(ctx context.Context, tx *entity.Transaction) error {
+	return nil
+}
+
+// MockWalletRepository はWalletRepositoryのモック実装
+type MockWalletRepository struct {
+	wallets map[int64]*entity.Wallet
+}
+
+func NewMockWalletRepository() *MockWalletRepository {
+	return &MockWalletRepository{
+		wallets: make(map[int64]*entity.Wallet),
+	}
+}
+
+func (r *MockWalletRepository) FindByUserID(ctx context.Context, userID int64) (*entity.Wallet, error) {
+	return r.wallets[userID], nil
+}
+
+func (r *MockWalletRepository) Update(ctx context.Context, wallet *entity.Wallet) error {
+	r.wallets[wallet.UserID] = wallet
+	return nil
+}
+
+// MockNotificationRepository はNotificationRepositoryのモック実装
+type MockNotificationRepository struct{}
+
+func (r *MockNotificationRepository) Create(ctx context.Context, n *entity.Notification) error {
+	return nil
+}
+
+// MockAddressRepository はAddressRepositoryのモック実装
+type MockAddressRepository struct {
+	addresses map[int64]*entity.Address
+}
+
+func NewMockAddressRepository() *MockAddressRepository {
+	return &MockAddressRepository{
+		addresses: make(map[int64]*entity.Address),
+	}
+}
+
+func (r *MockAddressRepository) Create(ctx context.Context, addr *entity.Address) error {
+	addr.ID = 1
+	r.addresses[addr.ID] = addr
+	return nil
+}
+
+func (r *MockAddressRepository) FindByID(ctx context.Context, id int64) (*entity.Address, error) {
+	return r.addresses[id], nil
+}
+
+func (r *MockAddressRepository) FindByUserID(ctx context.Context, userID int64) ([]*entity.Address, error) {
+	var addrs []*entity.Address
+	for _, addr := range r.addresses {
+		if addr.UserID == userID {
+			addrs = append(addrs, addr)
+		}
+	}
+	return addrs, nil
+}
+
+func (r *MockAddressRepository) Update(ctx context.Context, addr *entity.Address) error {
+	r.addresses[addr.ID] = addr
+	return nil
+}
+
+func (r *MockAddressRepository) Delete(ctx context.Context, id int64) error {
+	delete(r.addresses, id)
+	return nil
+}
+
+func TestItemUseCase_PurchaseItem_Success(t *testing.T) {
+	mockItemRepo := NewMockItemRepository()
+	mockCommentRepo := NewMockCommentRepository()
+	mockTransactionRepo := &MockTransactionRepository{}
+	mockWalletRepo := NewMockWalletRepository()
+	mockNotificationRepo := &MockNotificationRepository{}
+	mockAddressRepo := NewMockAddressRepository()
+
+	uc := NewItemUseCase(mockItemRepo, mockCommentRepo, mockTransactionRepo, mockWalletRepo, mockNotificationRepo, mockAddressRepo, &NotificationUseCase{mockNotificationRepo})
+
+	// アイテム作成
+	item := &entity.Item{
+		ID:        1,
+		SellerID:  2,
+		Name:      "Test Item",
+		Price:     1000,
+		Stock:     10,
+		Condition: entity.ItemConditionNew,
+		Status:    entity.ItemStatusOnSale,
+	}
+	mockItemRepo.items[1] = item
+
+	// ウォレット作成
+	buyerWallet := &entity.Wallet{UserID: 1, Balance: 2000, Points: 100}
+	sellerWallet := &entity.Wallet{UserID: 2, Balance: 0, Points: 0}
+	mockWalletRepo.wallets[1] = buyerWallet
+	mockWalletRepo.wallets[2] = sellerWallet
+
+	// 配送先作成
+	addr := &entity.Address{ID: 1, UserID: 1, Name: "Test", PostalCode: "123", Address: "Test Addr", Phone: "123"}
+	mockAddressRepo.addresses[1] = addr
+
+	// 購入
+	err := uc.PurchaseItem(context.Background(), 1, 1, 1, "wallet", 100)
+	if err != nil {
+		t.Fatalf("PurchaseItem failed: %v", err)
+	}
+
+	// 検証
+	if buyerWallet.Balance != 1100 {
+		t.Errorf("Expected buyer balance 1100, got %d", buyerWallet.Balance)
+	}
+	if buyerWallet.Points != 0 {
+		t.Errorf("Expected buyer points 0, got %d", buyerWallet.Points)
+	}
+	if sellerWallet.Balance != 900 {
+		t.Errorf("Expected seller balance 900, got %d", sellerWallet.Balance)
+	}
+	if item.Stock != 9 {
+		t.Errorf("Expected stock 9, got %d", item.Stock)
+	}
+}
+
+func TestItemUseCase_PurchaseItem_InsufficientBalance(t *testing.T) {
+	mockItemRepo := NewMockItemRepository()
+	mockCommentRepo := NewMockCommentRepository()
+	mockTransactionRepo := &MockTransactionRepository{}
+	mockWalletRepo := NewMockWalletRepository()
+	mockNotificationRepo := &MockNotificationRepository{}
+	mockAddressRepo := NewMockAddressRepository()
+
+	uc := NewItemUseCase(mockItemRepo, mockCommentRepo, mockTransactionRepo, mockWalletRepo, mockNotificationRepo, mockAddressRepo, &NotificationUseCase{mockNotificationRepo})
+
+	// アイテム作成
+	item := &entity.Item{
+		ID:        1,
+		SellerID:  2,
+		Name:      "Test Item",
+		Price:     1000,
+		Stock:     10,
+		Condition: entity.ItemConditionNew,
+		Status:    entity.ItemStatusOnSale,
+	}
+	mockItemRepo.items[1] = item
+
+	// ウォレット作成（残高不足）
+	buyerWallet := &entity.Wallet{UserID: 1, Balance: 500, Points: 100}
+	sellerWallet := &entity.Wallet{UserID: 2, Balance: 0, Points: 0}
+	mockWalletRepo.wallets[1] = buyerWallet
+	mockWalletRepo.wallets[2] = sellerWallet
+
+	// 配送先作成
+	addr := &entity.Address{ID: 1, UserID: 1, Name: "Test", PostalCode: "123", Address: "Test Addr", Phone: "123"}
+	mockAddressRepo.addresses[1] = addr
+
+	// 購入（失敗）
+	err := uc.PurchaseItem(context.Background(), 1, 1, 1, "wallet", 100)
+	if err == nil {
+		t.Fatal("Expected error for insufficient balance")
 	}
 }

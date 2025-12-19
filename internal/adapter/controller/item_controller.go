@@ -425,3 +425,65 @@ func (ctrl *ItemController) DeleteItem(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+type PurchaseItemRequest struct {
+	AddressID     int64  `json:"address_id" binding:"required"`
+	PaymentMethod string `json:"payment_method" binding:"required"`
+	PointsUsed    int64  `json:"points_used" binding:"gte=0"`
+}
+
+// PurchaseItem はアイテムを購入する
+func (ctrl *ItemController) PurchaseItem(c *gin.Context) {
+	// アイテムIDを取得
+	itemIDStr := c.Param("id")
+	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		return
+	}
+
+	// リクエストボディをパース
+	var req PurchaseItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Firebase UIDを取得
+	firebaseUID, exists := c.Get("firebase_uid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Firebase UID not found"})
+		return
+	}
+
+	// Firebase UIDからユーザー情報を取得
+	user, err := ctrl.userUseCase.GetUserByFirebaseUID(c.Request.Context(), firebaseUID.(string))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// 購入処理
+	if err := ctrl.itemUseCase.PurchaseItem(c.Request.Context(), itemID, user.ID, req.AddressID, req.PaymentMethod, req.PointsUsed); err != nil {
+		if err == usecase.ErrItemNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+			return
+		}
+		if err == usecase.ErrItemNotForSale {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Item not for sale"})
+			return
+		}
+		if err == entity.ErrInsufficientBalance {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient balance"})
+			return
+		}
+		if err == entity.ErrInsufficientPoints {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient points"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to purchase item: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Purchase successful"})
+}

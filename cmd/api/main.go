@@ -57,6 +57,10 @@ func main() {
 	likeRepo := mysql.NewLikeRepository(database.GetDB())
 	commentRepo := mysql.NewCommentRepository(database.GetDB())
 	followRepo := mysql.NewFollowRepository(database.GetDB())
+	transactionRepo := mysql.NewTransactionRepository(database.GetDB())
+	walletRepo := mysql.NewWalletRepository(database.GetDB())
+	notificationRepo := mysql.NewNotificationRepository(database.GetDB())
+	addressRepo := mysql.NewAddressRepository(database.GetDB())
 
 	// Initialize GCS client
 	ctx := context.Background()
@@ -74,13 +78,16 @@ func main() {
 
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
-	itemUseCase := usecase.NewItemUseCase(itemRepo, commentRepo)
+	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo)
+	addressUseCase := usecase.NewAddressUseCase(addressRepo)
+	itemUseCase := usecase.NewItemUseCase(itemRepo, commentRepo, transactionRepo, walletRepo, notificationRepo, addressRepo, notificationUseCase)
 	likeUseCase := usecase.NewLikeUseCase(likeRepo, itemRepo)
 	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
+	addressController := controller.NewAddressController(addressUseCase, userUseCase)
 	itemController := controller.NewItemController(itemUseCase, userUseCase)
 	uploadController := controller.NewUploadController(gcsClient)
 	likeController := controller.NewLikeController(likeUseCase)
@@ -145,10 +152,17 @@ func main() {
 		api.PUT("/users/profile", userController.UpdateProfile)
 		api.DELETE("/users", userController.DeleteUser)
 
+		// 配送先管理
+		api.GET("/addresses", addressController.GetAddresses)
+		api.POST("/addresses", addressController.CreateAddress)
+		api.PUT("/addresses/:id", addressController.UpdateAddress)
+		api.DELETE("/addresses/:id", addressController.DeleteAddress)
+
 		// アイテム管理（認証必須）
 		api.POST("/items", itemController.CreateItem)
 		api.PUT("/items/:id", itemController.UpdateItem)
 		api.DELETE("/items/:id", itemController.DeleteItem)
+		api.POST("/items/:id/purchase", itemController.PurchaseItem)
 
 		// 画像アップロード
 		api.POST("/upload/signed-url", uploadController.GenerateSignedURL)
