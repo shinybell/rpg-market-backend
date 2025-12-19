@@ -76,13 +76,13 @@ func (c *MessageController) HandleWebSocket(ctx *gin.Context) {
 	}
 	if err := json.Unmarshal(message, &authMsg); err != nil {
 		log.Printf("failed to parse auth message: %v", err)
-		conn.WriteJSON(map[string]string{"error": "invalid auth message"})
+		_ = conn.WriteJSON(map[string]string{"error": "invalid auth message"})
 		return
 	}
 
 	if authMsg.Type != "auth" || authMsg.Token == "" {
 		log.Println("invalid auth message type or empty token")
-		conn.WriteJSON(map[string]string{"error": "authentication required"})
+		_ = conn.WriteJSON(map[string]string{"error": "authentication required"})
 		return
 	}
 
@@ -90,14 +90,14 @@ func (c *MessageController) HandleWebSocket(ctx *gin.Context) {
 	client := auth.GetClient()
 	if client == nil {
 		log.Println("Firebase client not initialized")
-		conn.WriteJSON(map[string]string{"error": "server error"})
+		_ = conn.WriteJSON(map[string]string{"error": "server error"})
 		return
 	}
 
 	token, err := client.VerifyIDToken(context.Background(), authMsg.Token)
 	if err != nil {
 		log.Printf("failed to verify token: %v", err)
-		conn.WriteJSON(map[string]string{"error": "invalid token"})
+		_ = conn.WriteJSON(map[string]string{"error": "invalid token"})
 		return
 	}
 
@@ -105,19 +105,19 @@ func (c *MessageController) HandleWebSocket(ctx *gin.Context) {
 	user, err := c.userRepo.FindByFirebaseUID(context.Background(), token.UID)
 	if err != nil || user == nil {
 		log.Printf("user not found: %v", err)
-		conn.WriteJSON(map[string]string{"error": "user not found"})
+		_ = conn.WriteJSON(map[string]string{"error": "user not found"})
 		return
 	}
 
 	// アクセス権チェック
 	if err := c.messageUsecase.ValidateAccess(context.Background(), transactionID, user.ID); err != nil {
 		log.Printf("access denied: %v", err)
-		conn.WriteJSON(map[string]string{"error": "access denied"})
+		_ = conn.WriteJSON(map[string]string{"error": "access denied"})
 		return
 	}
 
 	// 認証成功を通知
-	conn.WriteJSON(map[string]string{"type": "auth_success"})
+	_ = conn.WriteJSON(map[string]string{"type": "auth_success"})
 
 	// クライアント作成
 	wsClient := websocket.NewClient(c.hub, conn, user.ID, transactionID)
