@@ -14,6 +14,12 @@ type TransactionRepository interface {
 	// FindByID はIDで取引を検索する
 	FindByID(ctx context.Context, id int64) (*entity.Transaction, error)
 
+	// FindByItemID はアイテムIDで取引を検索する
+	FindByItemID(ctx context.Context, itemID int64) (*entity.Transaction, error)
+
+	// FindByBuyerID は購入者IDで取引一覧を検索する
+	FindByBuyerID(ctx context.Context, buyerID int64) ([]*entity.Transaction, error)
+
 	// Update は取引を更新する
 	Update(ctx context.Context, tx *entity.Transaction) error
 }

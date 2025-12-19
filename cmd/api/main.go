@@ -18,6 +18,7 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db/mysql"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/middleware"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/storage"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/websocket"
 	"github.com/shinybell/rpg-market-backend/internal/usecase"
 
 	_ "github.com/shinybell/rpg-market-backend/docs"
@@ -61,6 +62,7 @@ func main() {
 	walletRepo := mysql.NewWalletRepository(database.GetDB())
 	notificationRepo := mysql.NewNotificationRepository(database.GetDB())
 	addressRepo := mysql.NewAddressRepository(database.GetDB())
+	messageRepo := mysql.NewMessageRepository(database.GetDB())
 
 	// Initialize GCS client
 	ctx := context.Background()
@@ -84,6 +86,11 @@ func main() {
 	likeUseCase := usecase.NewLikeUseCase(likeRepo, itemRepo)
 	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
+	messageUseCase := usecase.NewMessageUsecase(messageRepo, transactionRepo)
+
+	// Initialize WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
 
 	// Initialize controllers
 	userController := controller.NewUserController(userUseCase)
@@ -93,6 +100,7 @@ func main() {
 	likeController := controller.NewLikeController(likeUseCase)
 	commentController := controller.NewCommentController(commentUseCase)
 	followController := controller.NewFollowController(followUseCase)
+	messageController := controller.NewMessageController(messageUseCase, userRepo, hub)
 
 	// Setup router
 	gin.SetMode(cfg.LogLevel)
@@ -140,6 +148,9 @@ func main() {
 	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
 	r.GET("/api/items/:id", itemController.GetItem)
 
+	// WebSocket routes (接続後に認証)
+	r.GET("/api/ws/transactions/:id", messageController.HandleWebSocket)
+
 	// Protected routes
 	api := r.Group("/api")
 	api.Use(middleware.FirebaseAuth(userRepo))
@@ -151,6 +162,8 @@ func main() {
 		// ユーザー管理
 		api.PUT("/users/profile", userController.UpdateProfile)
 		api.DELETE("/users", userController.DeleteUser)
+		api.GET("/users/me/items", itemController.GetMyItems)
+		api.GET("/users/me/purchases", itemController.GetMyPurchases)
 
 		// 配送先管理
 		api.GET("/addresses", addressController.GetAddresses)
@@ -163,6 +176,7 @@ func main() {
 		api.PUT("/items/:id", itemController.UpdateItem)
 		api.DELETE("/items/:id", itemController.DeleteItem)
 		api.POST("/items/:id/purchase", itemController.PurchaseItem)
+		api.GET("/items/:id/transaction", itemController.GetItemTransaction)
 
 		// 画像アップロード
 		api.POST("/upload/signed-url", uploadController.GenerateSignedURL)
@@ -180,6 +194,13 @@ func main() {
 		// フォロー管理
 		api.POST("/users/:id/follow", followController.AddFollow)
 		api.DELETE("/users/:id/follow", followController.RemoveFollow)
+
+		// メッセージ管理
+		api.POST("/transactions/:id/messages", messageController.SendMessage)
+		api.GET("/transactions/:id/messages", messageController.GetMessages)
+		// トランザクション情報取得（取引当事者のみ）
+		api.GET("/transactions/:id", messageController.GetTransaction)
+		api.GET("/messages/unread", messageController.GetUnreadCount)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)
