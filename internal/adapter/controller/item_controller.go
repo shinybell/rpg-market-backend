@@ -57,6 +57,7 @@ type UpdateItemRequest struct {
 	ShippingDays     *entity.ShippingDays  `json:"shipping_days,omitempty"`
 	PrefectureID     *int                  `json:"prefecture_id,omitempty"`
 	Status           *entity.ItemStatus    `json:"status,omitempty"`
+	Images           []CreateItemImageReq  `json:"images,omitempty"`
 }
 
 // @Summary アイテム作成
@@ -361,6 +362,17 @@ func (ctrl *ItemController) UpdateItem(c *gin.Context) {
 	}
 	if req.Status != nil {
 		item.Status = *req.Status
+	}
+	if req.Images != nil {
+		images := make([]entity.ItemImage, len(req.Images))
+		for i, img := range req.Images {
+			images[i] = entity.ItemImage{
+				ItemID:       itemID,
+				ImageURL:     img.ImageURL,
+				DisplayOrder: img.DisplayOrder,
+			}
+		}
+		item.Images = images
 	}
 
 	// アイテムを更新

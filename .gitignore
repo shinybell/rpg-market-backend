@@ -5,6 +5,7 @@
 *.so
 *.so.*
 *.dylib
+bin/
 
 # Test binary, built with `go test -c`
 *.test
@@ -39,3 +40,5 @@ Thumbs.db
 credentials/
 
 .air.toml
+
+coverage.html
