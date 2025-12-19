@@ -16,6 +16,7 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db/mysql"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/gemini"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/middleware"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/storage"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/websocket"
@@ -78,6 +79,9 @@ func main() {
 		}()
 	}
 
+	// Initialize Gemini client
+	geminiClient := gemini.NewClient(cfg.GeminiAPIKey, cfg.GeminiModel)
+
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
 	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo)
@@ -87,6 +91,7 @@ func main() {
 	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 	messageUseCase := usecase.NewMessageUsecase(messageRepo, transactionRepo)
+	generationUseCase := usecase.NewGenerationUseCase(geminiClient)
 
 	// Initialize WebSocket Hub
 	hub := websocket.NewHub()
@@ -101,6 +106,7 @@ func main() {
 	commentController := controller.NewCommentController(commentUseCase)
 	followController := controller.NewFollowController(followUseCase)
 	messageController := controller.NewMessageController(messageUseCase, userRepo, hub)
+	generationController := controller.NewGenerationController(generationUseCase)
 
 	// Setup router
 	gin.SetMode(cfg.LogLevel)
@@ -201,6 +207,9 @@ func main() {
 		// トランザクション情報取得（取引当事者のみ）
 		api.GET("/transactions/:id", messageController.GetTransaction)
 		api.GET("/messages/unread", messageController.GetUnreadCount)
+
+		// AI生成機能
+		api.POST("/items/description-suggestions", generationController.GenerateDescription)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

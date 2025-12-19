@@ -17,7 +17,7 @@ RUN go install github.com/air-verse/air@latest
 
 EXPOSE 8080
 
-CMD ["go", "run", "./cmd/api"]
+CMD ["air", "-c", ".air.toml"]
 
 FROM base AS builder
 

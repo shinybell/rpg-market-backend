@@ -141,15 +141,6 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -319,6 +310,72 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/items/description-suggestions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gemini APIを使ってアイテムの説明文候補を生成する",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "generation"
+                ],
+                "summary": "アイテム説明文生成",
+                "parameters": [
+                    {
+                        "description": "生成リクエスト",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.GenerateDescriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GenerateDescriptionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -667,6 +724,233 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/items/{id}/transaction": {
+            "get": {
+                "description": "自分が関わる取引情報を取得（購入者または出品者のみ）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "商品の取引情報取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Transaction"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/messages/unread": {
+            "get": {
+                "description": "ユーザーの未読メッセージ数を取得",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "未読メッセージ数取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "count": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/transactions/{id}": {
+            "get": {
+                "description": "トランザクションIDで取引情報を取得（購入者または出品者のみ）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "取引情報取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Transaction"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/transactions/{id}/messages": {
+            "get": {
+                "description": "取引に紐づくメッセージ一覧を取得",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "メッセージ一覧取得",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.Message"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "取引に紐づくメッセージを送信",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "メッセージ送信",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Message content",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Message"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/upload/signed-url": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "画像アップロード用の署名付きURLとGCSのURLを生成",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "画像アップロード用の署名付きURL生成",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "ファイル名とContent-Type",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.GenerateSignedURLRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.GenerateSignedURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users": {
             "delete": {
                 "security": [
@@ -710,6 +994,52 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/me/items": {
+            "get": {
+                "description": "自分が出品したアイテムの一覧を取得",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "自分の出品アイテム取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.Item"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/me/purchases": {
+            "get": {
+                "description": "自分が購入したアイテムの一覧を取得",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "自分の購入アイテム取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.Transaction"
                             }
                         }
                     }
@@ -813,6 +1143,25 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/ws/transactions/{id}": {
+            "get": {
+                "description": "取引に紐づくメッセージをリアルタイムで送受信",
+                "tags": [
+                    "messages"
+                ],
+                "summary": "WebSocket接続",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
         }
     },
     "definitions": {
@@ -869,6 +1218,9 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 10
                 },
+                "image_url": {
+                    "type": "string"
+                },
                 "images": {
                     "type": "array",
                     "items": {
@@ -884,7 +1236,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "price": {
-                    "type": "number",
+                    "type": "integer",
                     "minimum": 0
                 },
                 "shipping_days": {
@@ -930,6 +1282,71 @@ const docTemplate = `{
                 }
             }
         },
+        "controller.GenerateDescriptionRequest": {
+            "type": "object",
+            "required": [
+                "item_name"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "condition": {
+                    "type": "string"
+                },
+                "item_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "num_suggestions": {
+                    "type": "integer"
+                }
+            }
+        },
+        "controller.GenerateDescriptionResponse": {
+            "type": "object",
+            "properties": {
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "controller.GenerateSignedURLRequest": {
+            "type": "object",
+            "required": [
+                "content_type",
+                "filename"
+            ],
+            "properties": {
+                "content_type": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.GenerateSignedURLResponse": {
+            "type": "object",
+            "properties": {
+                "bucket_name": {
+                    "description": "GCSバケット名",
+                    "type": "string"
+                },
+                "object_name": {
+                    "description": "GCS上のオブジェクト名",
+                    "type": "string"
+                },
+                "upload_url": {
+                    "description": "フロントエンドがアップロードに使用するURL",
+                    "type": "string"
+                }
+            }
+        },
         "controller.LoginRequest": {
             "type": "object",
             "required": [
@@ -953,6 +1370,12 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 10
                 },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controller.CreateItemImageReq"
+                    }
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 255,
@@ -962,7 +1385,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "price": {
-                    "type": "number",
+                    "type": "integer",
                     "minimum": 0
                 },
                 "shipping_days": {
@@ -999,6 +1422,85 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.Item": {
+            "type": "object",
+            "properties": {
+                "brand_id": {
+                    "type": "integer"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "comments_count": {
+                    "type": "integer"
+                },
+                "condition": {
+                    "$ref": "#/definitions/entity.ItemCondition"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ItemImage"
+                    }
+                },
+                "likes_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prefecture_id": {
+                    "type": "integer"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "seller": {
+                    "description": "リレーション",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.User"
+                        }
+                    ]
+                },
+                "seller_id": {
+                    "type": "integer"
+                },
+                "shipping_days": {
+                    "$ref": "#/definitions/entity.ShippingDays"
+                },
+                "shipping_method_id": {
+                    "type": "integer"
+                },
+                "shipping_payer": {
+                    "$ref": "#/definitions/entity.ShippingPayer"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.ItemStatus"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "entity.ItemCondition": {
             "type": "string",
             "enum": [
@@ -1015,6 +1517,26 @@ const docTemplate = `{
                 "ItemConditionGood",
                 "ItemConditionAcceptable"
             ]
+        },
+        "entity.ItemImage": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "item_id": {
+                    "type": "integer"
+                }
+            }
         },
         "entity.ItemStatus": {
             "type": "string",
@@ -1048,6 +1570,57 @@ const docTemplate = `{
                 "KYCStatusRejected"
             ]
         },
+        "entity.Message": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "sender": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "sender_id": {
+                    "type": "integer"
+                },
+                "transaction": {
+                    "description": "リレーション",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Transaction"
+                        }
+                    ]
+                },
+                "transaction_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entity.PaymentStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "captured",
+                "failed",
+                "refunded",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "PaymentStatusPending",
+                "PaymentStatusCaptured",
+                "PaymentStatusFailed",
+                "PaymentStatusRefunded",
+                "PaymentStatusCancelled"
+            ]
+        },
         "entity.ShippingDays": {
             "type": "string",
             "enum": [
@@ -1070,6 +1643,86 @@ const docTemplate = `{
             "x-enum-varnames": [
                 "ShippingPayerBuyer",
                 "ShippingPayerSeller"
+            ]
+        },
+        "entity.Transaction": {
+            "type": "object",
+            "properties": {
+                "buyer": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "buyer_id": {
+                    "type": "integer"
+                },
+                "cancelled_at": {
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "fee_amount": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "item": {
+                    "description": "リレーション",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Item"
+                        }
+                    ]
+                },
+                "item_id": {
+                    "type": "integer"
+                },
+                "payment_method": {
+                    "type": "string"
+                },
+                "payment_status": {
+                    "$ref": "#/definitions/entity.PaymentStatus"
+                },
+                "payment_transaction_id": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "profit_amount": {
+                    "type": "integer"
+                },
+                "seller": {
+                    "$ref": "#/definitions/entity.User"
+                },
+                "seller_id": {
+                    "type": "integer"
+                },
+                "transaction_status": {
+                    "$ref": "#/definitions/entity.TransactionStatus"
+                }
+            }
+        },
+        "entity.TransactionStatus": {
+            "type": "string",
+            "enum": [
+                "awaiting_pay",
+                "awaiting_ship",
+                "shipped",
+                "delivered",
+                "completed",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "TransactionStatusAwaitingPay",
+                "TransactionStatusAwaitingShip",
+                "TransactionStatusShipped",
+                "TransactionStatusDelivered",
+                "TransactionStatusCompleted",
+                "TransactionStatusCancelled"
             ]
         },
         "entity.User": {
@@ -1169,13 +1822,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "balance": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "points": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1208,6 +1861,9 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
+                "comments_count": {
+                    "type": "integer"
+                },
                 "condition": {
                     "$ref": "#/definitions/entity.ItemCondition"
                 },
@@ -1236,7 +1892,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "price": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "seller": {
                     "$ref": "#/definitions/presenter.UserResponse"
@@ -1317,10 +1973,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "balance": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "points": {
-                    "type": "number"
+                    "type": "integer"
                 }
             }
         }
