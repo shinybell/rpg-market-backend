@@ -470,6 +470,18 @@ func (r *MockTransactionRepository) Update(ctx context.Context, tx *entity.Trans
 	return nil
 }
 
+func (r *MockTransactionRepository) FindByBuyerID(ctx context.Context, buyerID int64) ([]*entity.Transaction, error) {
+	return []*entity.Transaction{}, nil
+}
+
+func (r *MockTransactionRepository) FindByItemID(ctx context.Context, itemID int64) (*entity.Transaction, error) {
+	return nil, nil
+}
+
+func (r *MockTransactionRepository) FindByItemIDAndUserID(ctx context.Context, itemID, userID int64) (*entity.Transaction, error) {
+	return nil, nil
+}
+
 // MockWalletRepository はWalletRepositoryのモック実装
 type MockWalletRepository struct {
 	wallets map[int64]*entity.Wallet
