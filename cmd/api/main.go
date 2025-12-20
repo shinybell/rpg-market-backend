@@ -16,6 +16,7 @@ import (
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/auth"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/db/mysql"
+	"github.com/shinybell/rpg-market-backend/internal/infrastructure/gemini"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/middleware"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/storage"
 	"github.com/shinybell/rpg-market-backend/internal/infrastructure/websocket"
@@ -78,6 +79,9 @@ func main() {
 		}()
 	}
 
+	// Initialize Gemini client
+	geminiClient := gemini.NewClient(cfg.GeminiAPIKey, cfg.GeminiModel)
+
 	// Initialize use cases
 	userUseCase := usecase.NewUserUseCase(userRepo)
 	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo)
@@ -87,6 +91,8 @@ func main() {
 	commentUseCase := usecase.NewCommentUseCase(commentRepo, itemRepo)
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 	messageUseCase := usecase.NewMessageUsecase(messageRepo, transactionRepo)
+	generationUseCase := usecase.NewGenerationUseCase(geminiClient)
+	walletUseCase := usecase.NewWalletUseCase(walletRepo, database.GetDB())
 
 	// Initialize WebSocket Hub
 	hub := websocket.NewHub()
@@ -101,6 +107,8 @@ func main() {
 	commentController := controller.NewCommentController(commentUseCase)
 	followController := controller.NewFollowController(followUseCase)
 	messageController := controller.NewMessageController(messageUseCase, userRepo, hub)
+	generationController := controller.NewGenerationController(generationUseCase)
+	walletController := controller.NewWalletController(walletUseCase, userUseCase)
 
 	// Setup router
 	gin.SetMode(cfg.LogLevel)
@@ -144,6 +152,7 @@ func main() {
 	// Public item routes (認証不要)
 	r.GET("/api/items", itemController.ListItems)
 	r.GET("/api/items/search", itemController.SearchItems) // searchは:idより前に定義
+	r.POST("/api/items/search/keywords", itemController.SearchItemsByKeywords)
 	r.GET("/api/items/seller/:seller_id", itemController.ListItemsBySeller)
 	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
 	r.GET("/api/items/:id", itemController.GetItem)
@@ -201,6 +210,15 @@ func main() {
 		// トランザクション情報取得（取引当事者のみ）
 		api.GET("/transactions/:id", messageController.GetTransaction)
 		api.GET("/messages/unread", messageController.GetUnreadCount)
+
+		// AI生成機能
+		api.POST("/items/description-suggestions", generationController.GenerateDescription)
+		api.POST("/items/appraise", generationController.AppraiseItem)
+		api.POST("/search/convert", generationController.ConvertSearchQuery)
+
+		// ウォレット管理
+		api.POST("/wallet/charge", walletController.ChargeBalance)
+		api.GET("/wallet/transactions", walletController.GetTransactionHistory)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

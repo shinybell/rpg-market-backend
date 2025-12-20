@@ -122,6 +122,16 @@ func (r *MockItemRepository) Search(ctx context.Context, keyword string, limit, 
 	return items, nil
 }
 
+func (r *MockItemRepository) SearchByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error) {
+	var items []*entity.Item
+	for _, item := range r.items {
+		if item.Status == entity.ItemStatusOnSale && item.DeletedAt == nil {
+			items = append(items, item)
+		}
+	}
+	return items, nil
+}
+
 func (r *MockItemRepository) Update(ctx context.Context, item *entity.Item) error {
 	if _, exists := r.items[item.ID]; !exists {
 		return errors.New("item not found")
@@ -500,6 +510,16 @@ func (r *MockWalletRepository) FindByUserID(ctx context.Context, userID int64) (
 func (r *MockWalletRepository) Update(ctx context.Context, wallet *entity.Wallet) error {
 	r.wallets[wallet.UserID] = wallet
 	return nil
+}
+
+func (r *MockWalletRepository) CreateTransaction(ctx context.Context, tx *entity.WalletTransaction) error {
+	// For tests, we don't need to persist transactions. Return nil to indicate success.
+	return nil
+}
+
+func (r *MockWalletRepository) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*entity.WalletTransaction, error) {
+	// Return empty history by default for tests
+	return []*entity.WalletTransaction{}, nil
 }
 
 // MockNotificationRepository はNotificationRepositoryのモック実装
