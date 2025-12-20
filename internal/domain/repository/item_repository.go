@@ -23,8 +23,11 @@ type ItemRepository interface {
 	// FindByStatus はステータスでアイテムを検索する
 	FindByStatus(ctx context.Context, status entity.ItemStatus, limit, offset int) ([]*entity.Item, error)
 
-	// Search はキーワードでアイテムを検索する
+	// Search はキーワードでアイテムを検索する（単一キーワード）
 	Search(ctx context.Context, keyword string, limit, offset int) ([]*entity.Item, error)
+
+	// SearchByKeywords は複数キーワードでアイテムを検索する
+	SearchByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error)
 
 	// Update はアイテム情報を更新する
 	Update(ctx context.Context, item *entity.Item) error

@@ -22,6 +22,8 @@ type Config struct {
 	VercelDeployURL            string
 	GoogleCloudCredentialsPath string
 	GCSBucketName              string
+	GeminiAPIKey               string
+	GeminiModel                string
 }
 
 func Load() *Config {
@@ -45,6 +47,8 @@ func Load() *Config {
 		VercelDeployURL:            getEnv("VERCEL_DEPLOY_URL", ""),
 		GoogleCloudCredentialsPath: getGoogleCloudCredentialsPath(),
 		GCSBucketName:              getEnv("GCS_BUCKET_NAME", "rpg-market-images"),
+		GeminiAPIKey:               getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:                getEnv("GEMINI_MODEL", "gemini-1.5-flash"),
 	}
 
 	return cfg

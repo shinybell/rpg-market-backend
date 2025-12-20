@@ -28,6 +28,8 @@ definitions:
       description:
         minLength: 10
         type: string
+      image_url:
+        type: string
       images:
         items:
           $ref: '#/definitions/controller.CreateItemImageReq'
@@ -40,7 +42,7 @@ definitions:
         type: integer
       price:
         minimum: 0
-        type: number
+        type: integer
       shipping_days:
         allOf:
         - $ref: '#/definitions/entity.ShippingDays'
@@ -76,6 +78,50 @@ definitions:
     - status
     - stock
     type: object
+  controller.GenerateDescriptionRequest:
+    properties:
+      category:
+        type: string
+      condition:
+        type: string
+      item_name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      num_suggestions:
+        type: integer
+    required:
+    - item_name
+    type: object
+  controller.GenerateDescriptionResponse:
+    properties:
+      suggestions:
+        items:
+          type: string
+        type: array
+    type: object
+  controller.GenerateSignedURLRequest:
+    properties:
+      content_type:
+        type: string
+      filename:
+        type: string
+    required:
+    - content_type
+    - filename
+    type: object
+  controller.GenerateSignedURLResponse:
+    properties:
+      bucket_name:
+        description: GCSバケット名
+        type: string
+      object_name:
+        description: GCS上のオブジェクト名
+        type: string
+      upload_url:
+        description: フロントエンドがアップロードに使用するURL
+        type: string
+    type: object
   controller.LoginRequest:
     properties:
       nickname:
@@ -92,6 +138,10 @@ definitions:
       description:
         minLength: 10
         type: string
+      images:
+        items:
+          $ref: '#/definitions/controller.CreateItemImageReq'
+        type: array
       name:
         maxLength: 255
         minLength: 1
@@ -100,7 +150,7 @@ definitions:
         type: integer
       price:
         minimum: 0
-        type: number
+        type: integer
       shipping_days:
         $ref: '#/definitions/entity.ShippingDays'
       shipping_method_id:
@@ -124,6 +174,57 @@ definitions:
         minLength: 2
         type: string
     type: object
+  entity.Item:
+    properties:
+      brand_id:
+        type: integer
+      category_id:
+        type: integer
+      comments_count:
+        type: integer
+      condition:
+        $ref: '#/definitions/entity.ItemCondition'
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          $ref: '#/definitions/entity.ItemImage'
+        type: array
+      likes_count:
+        type: integer
+      name:
+        type: string
+      prefecture_id:
+        type: integer
+      price:
+        type: integer
+      seller:
+        allOf:
+        - $ref: '#/definitions/entity.User'
+        description: リレーション
+      seller_id:
+        type: integer
+      shipping_days:
+        $ref: '#/definitions/entity.ShippingDays'
+      shipping_method_id:
+        type: integer
+      shipping_payer:
+        $ref: '#/definitions/entity.ShippingPayer'
+      status:
+        $ref: '#/definitions/entity.ItemStatus'
+      stock:
+        type: integer
+      updated_at:
+        type: string
+      view_count:
+        type: integer
+    type: object
   entity.ItemCondition:
     enum:
     - new
@@ -138,6 +239,19 @@ definitions:
     - ItemConditionVeryGood
     - ItemConditionGood
     - ItemConditionAcceptable
+  entity.ItemImage:
+    properties:
+      created_at:
+        type: string
+      display_order:
+        type: integer
+      id:
+        type: integer
+      image_url:
+        type: string
+      item_id:
+        type: integer
+    type: object
   entity.ItemStatus:
     enum:
     - draft
@@ -164,6 +278,41 @@ definitions:
     - KYCStatusPending
     - KYCStatusVerified
     - KYCStatusRejected
+  entity.Message:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      sender:
+        $ref: '#/definitions/entity.User'
+      sender_id:
+        type: integer
+      transaction:
+        allOf:
+        - $ref: '#/definitions/entity.Transaction'
+        description: リレーション
+      transaction_id:
+        type: integer
+    type: object
+  entity.PaymentStatus:
+    enum:
+    - pending
+    - captured
+    - failed
+    - refunded
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - PaymentStatusPending
+    - PaymentStatusCaptured
+    - PaymentStatusFailed
+    - PaymentStatusRefunded
+    - PaymentStatusCancelled
   entity.ShippingDays:
     enum:
     - 1-2
@@ -182,6 +331,61 @@ definitions:
     x-enum-varnames:
     - ShippingPayerBuyer
     - ShippingPayerSeller
+  entity.Transaction:
+    properties:
+      buyer:
+        $ref: '#/definitions/entity.User'
+      buyer_id:
+        type: integer
+      cancelled_at:
+        type: string
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      fee_amount:
+        type: integer
+      id:
+        type: integer
+      item:
+        allOf:
+        - $ref: '#/definitions/entity.Item'
+        description: リレーション
+      item_id:
+        type: integer
+      payment_method:
+        type: string
+      payment_status:
+        $ref: '#/definitions/entity.PaymentStatus'
+      payment_transaction_id:
+        type: string
+      price:
+        type: integer
+      profit_amount:
+        type: integer
+      seller:
+        $ref: '#/definitions/entity.User'
+      seller_id:
+        type: integer
+      transaction_status:
+        $ref: '#/definitions/entity.TransactionStatus'
+    type: object
+  entity.TransactionStatus:
+    enum:
+    - awaiting_pay
+    - awaiting_ship
+    - shipped
+    - delivered
+    - completed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - TransactionStatusAwaitingPay
+    - TransactionStatusAwaitingShip
+    - TransactionStatusShipped
+    - TransactionStatusDelivered
+    - TransactionStatusCompleted
+    - TransactionStatusCancelled
   entity.User:
     properties:
       created_at:
@@ -247,11 +451,11 @@ definitions:
   entity.Wallet:
     properties:
       balance:
-        type: number
+        type: integer
       created_at:
         type: string
       points:
-        type: number
+        type: integer
       updated_at:
         type: string
       user_id:
@@ -272,6 +476,8 @@ definitions:
         type: integer
       category_id:
         type: integer
+      comments_count:
+        type: integer
       condition:
         $ref: '#/definitions/entity.ItemCondition'
       created_at:
@@ -291,7 +497,7 @@ definitions:
       prefecture_id:
         type: integer
       price:
-        type: number
+        type: integer
       seller:
         $ref: '#/definitions/presenter.UserResponse'
       seller_id:
@@ -344,9 +550,9 @@ definitions:
   presenter.WalletResponse:
     properties:
       balance:
-        type: number
+        type: integer
       points:
-        type: number
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -428,12 +634,6 @@ paths:
             $ref: '#/definitions/entity.User'
         "401":
           description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -653,6 +853,25 @@ paths:
       summary: アイテム更新
       tags:
       - items
+  /api/items/{id}/transaction:
+    get:
+      description: 自分が関わる取引情報を取得（購入者または出品者のみ）
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Transaction'
+      summary: 商品の取引情報取得
+      tags:
+      - items
   /api/items/category/{category_id}:
     get:
       description: 指定したカテゴリのアイテム一覧を取得する
@@ -696,6 +915,48 @@ paths:
       summary: カテゴリ別アイテム一覧取得
       tags:
       - items
+  /api/items/description-suggestions:
+    post:
+      consumes:
+      - application/json
+      description: Gemini APIを使ってアイテムの説明文候補を生成する
+      parameters:
+      - description: 生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.GenerateDescriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GenerateDescriptionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: アイテム説明文生成
+      tags:
+      - generation
   /api/items/search:
     get:
       description: キーワードでアイテムを検索する
@@ -782,6 +1043,135 @@ paths:
       summary: 出品者のアイテム一覧取得
       tags:
       - items
+  /api/messages/unread:
+    get:
+      description: ユーザーの未読メッセージ数を取得
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              count:
+                type: integer
+            type: object
+      summary: 未読メッセージ数取得
+      tags:
+      - messages
+  /api/transactions/{id}:
+    get:
+      description: トランザクションIDで取引情報を取得（購入者または出品者のみ）
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Transaction'
+      summary: 取引情報取得
+      tags:
+      - messages
+  /api/transactions/{id}/messages:
+    get:
+      description: 取引に紐づくメッセージ一覧を取得
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Message'
+            type: array
+      summary: メッセージ一覧取得
+      tags:
+      - messages
+    post:
+      consumes:
+      - application/json
+      description: 取引に紐づくメッセージを送信
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message content
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Message'
+      summary: メッセージ送信
+      tags:
+      - messages
+  /api/upload/signed-url:
+    post:
+      consumes:
+      - application/json
+      description: 画像アップロード用の署名付きURLとGCSのURLを生成
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ファイル名とContent-Type
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.GenerateSignedURLRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.GenerateSignedURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 画像アップロード用の署名付きURL生成
+      tags:
+      - upload
   /api/users:
     delete:
       description: ユーザーアカウントを論理削除
@@ -813,6 +1203,36 @@ paths:
       summary: ユーザー削除
       tags:
       - user
+  /api/users/me/items:
+    get:
+      description: 自分が出品したアイテムの一覧を取得
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Item'
+            type: array
+      summary: 自分の出品アイテム取得
+      tags:
+      - items
+  /api/users/me/purchases:
+    get:
+      description: 自分が購入したアイテムの一覧を取得
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Transaction'
+            type: array
+      summary: 自分の購入アイテム取得
+      tags:
+      - items
   /api/users/profile:
     put:
       consumes:
@@ -876,6 +1296,19 @@ paths:
       summary: ヘルスチェック
       tags:
       - health
+  /ws/transactions/{id}:
+    get:
+      description: 取引に紐づくメッセージをリアルタイムで送受信
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      summary: WebSocket接続
+      tags:
+      - messages
 securityDefinitions:
   BearerAuth:
     in: header

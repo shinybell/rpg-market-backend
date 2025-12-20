@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -131,6 +132,47 @@ func (r *itemRepository) Search(ctx context.Context, keyword string, limit, offs
 		}).
 		Where("(name LIKE ? OR description LIKE ?) AND status = ? AND deleted_at IS NULL",
 			likeKeyword, likeKeyword, entity.ItemStatusOnSale).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&items).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// SearchByKeywords は複数キーワードでアイテムを検索する
+func (r *itemRepository) SearchByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error) {
+	var items []*entity.Item
+
+	if len(keywords) == 0 {
+		return []*entity.Item{}, nil
+	}
+
+	query := r.db.WithContext(ctx).
+		Preload("Seller").
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("display_order ASC")
+		})
+
+	// 各キーワードに対してOR条件を構築
+	var conditions []string
+	var args []interface{}
+	for _, keyword := range keywords {
+		likeKeyword := "%" + keyword + "%"
+		conditions = append(conditions, "(name LIKE ? OR description LIKE ?)")
+		args = append(args, likeKeyword, likeKeyword)
+	}
+
+	// OR条件を結合
+	whereClause := "(" + strings.Join(conditions, " OR ") + ") AND status = ? AND deleted_at IS NULL"
+	args = append(args, entity.ItemStatusOnSale)
+
+	err := query.
+		Where(whereClause, args...).
 		Order("created_at DESC").
 		Limit(limit).
 		Offset(offset).
