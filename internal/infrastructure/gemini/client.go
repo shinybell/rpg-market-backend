@@ -50,8 +50,8 @@ type GenerateContentResponse struct {
 
 // Candidate は生成された候補
 type Candidate struct {
-	Content       Content `json:"content"`
-	FinishReason  string  `json:"finishReason"`
+	Content       Content        `json:"content"`
+	FinishReason  string         `json:"finishReason"`
 	SafetyRatings []SafetyRating `json:"safetyRatings"`
 }
 
@@ -100,7 +100,9 @@ func (c *Client) GenerateContent(ctx context.Context, prompt string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to call Gemini API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// レスポンスボディを読み取り
 	body, err := io.ReadAll(resp.Body)
@@ -110,7 +112,7 @@ func (c *Client) GenerateContent(ctx context.Context, prompt string) (string, er
 
 	// ステータスコードチェック
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("gemini API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// レスポンスをパース

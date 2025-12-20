@@ -126,10 +126,6 @@ func (uc *GenerationUseCase) buildPrompt(req GenerateDescriptionRequest) string 
 	promptParts = append(promptParts, "")
 	promptParts = append(promptParts, fmt.Sprintf("【商品名】%s", req.ItemName))
 
-	// if req.Category != "" {
-	// 	promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
-	// }
-
 	if req.Condition != "" {
 		promptParts = append(promptParts, fmt.Sprintf("【状態】%s", req.Condition))
 	}

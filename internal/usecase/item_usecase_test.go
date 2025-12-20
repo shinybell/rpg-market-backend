@@ -122,6 +122,16 @@ func (r *MockItemRepository) Search(ctx context.Context, keyword string, limit, 
 	return items, nil
 }
 
+func (r *MockItemRepository) SearchByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error) {
+	var items []*entity.Item
+	for _, item := range r.items {
+		if item.Status == entity.ItemStatusOnSale && item.DeletedAt == nil {
+			items = append(items, item)
+		}
+	}
+	return items, nil
+}
+
 func (r *MockItemRepository) Update(ctx context.Context, item *entity.Item) error {
 	if _, exists := r.items[item.ID]; !exists {
 		return errors.New("item not found")

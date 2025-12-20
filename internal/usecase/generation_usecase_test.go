@@ -87,11 +87,11 @@ func TestGenerateDescriptionRequest_Validate(t *testing.T) {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			// NumSuggestionsのデフォルト値チェック
-			if !tt.wantErr && tt.req.NumSuggestions == 0 {
-				// Validateを呼んだ後、デフォルト値が設定されているはず
-				// （実際にはValidateメソッド内で設定される）
-			}
+			// NumSuggestionsのデフォルト値チェック（空のブロックを削除）
+			// if !tt.wantErr && tt.req.NumSuggestions == 0 {
+			// 	// Validateを呼んだ後、デフォルト値が設定されているはず
+			// 	// （実際にはValidateメソッド内で設定される）
+			// }
 		})
 	}
 }
@@ -216,9 +216,7 @@ func TestGenerationUseCase_BuildPrompt(t *testing.T) {
 	if !strings.Contains(prompt, req.ItemName) {
 		t.Error("prompt should contain item name")
 	}
-	if !strings.Contains(prompt, req.Category) {
-		t.Error("prompt should contain category")
-	}
+	// カテゴリは説明文生成では含めないように変更したのでチェックを削除
 	if !strings.Contains(prompt, req.Condition) {
 		t.Error("prompt should contain condition")
 	}

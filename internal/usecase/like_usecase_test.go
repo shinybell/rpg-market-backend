@@ -68,6 +68,11 @@ func (m *MockItemRepositoryForLike) Search(ctx context.Context, keyword string, 
 	return args.Get(0).([]*entity.Item), args.Error(1)
 }
 
+func (m *MockItemRepositoryForLike) SearchByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error) {
+	args := m.Called(ctx, keywords, limit, offset)
+	return args.Get(0).([]*entity.Item), args.Error(1)
+}
+
 func (m *MockItemRepositoryForLike) Update(ctx context.Context, item *entity.Item) error {
 	args := m.Called(ctx, item)
 	return args.Error(0)
