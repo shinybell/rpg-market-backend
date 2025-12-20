@@ -9,16 +9,16 @@ import (
 )
 
 var (
-	ErrInvalidInput        = errors.New("invalid input")
-	ErrGenerationFailed    = errors.New("generation failed")
-	ErrContentFiltered     = errors.New("content filtered due to safety concerns")
-	ErrExceededMaxLength   = errors.New("input exceeds maximum length")
+	ErrInvalidInput      = errors.New("invalid input")
+	ErrGenerationFailed  = errors.New("generation failed")
+	ErrContentFiltered   = errors.New("content filtered due to safety concerns")
+	ErrExceededMaxLength = errors.New("input exceeds maximum length")
 )
 
 const (
-	MaxInputLength      = 500  // 入力の最大文字数
-	MaxSuggestions      = 5    // 最大提案数
-	DefaultSuggestions  = 3    // デフォルト提案数
+	MaxInputLength       = 300 // 入力の最大文字数
+	MaxSuggestions       = 5   // 最大提案数
+	DefaultSuggestions   = 3   // デフォルト提案数
 	MinDescriptionLength = 50  // 生成される説明文の最小文字数
 	MaxDescriptionLength = 500 // 生成される説明文の最大文字数（日本語対応）
 )
@@ -42,9 +42,9 @@ func NewGenerationUseCase(generationService GenerationService) *GenerationUseCas
 
 // GenerateDescriptionRequest は説明文生成のリクエスト
 type GenerateDescriptionRequest struct {
-	ItemName      string
-	Category      string
-	Condition     string
+	ItemName       string
+	Category       string
+	Condition      string
 	NumSuggestions int
 }
 
@@ -126,9 +126,9 @@ func (uc *GenerationUseCase) buildPrompt(req GenerateDescriptionRequest) string 
 	promptParts = append(promptParts, "")
 	promptParts = append(promptParts, fmt.Sprintf("【商品名】%s", req.ItemName))
 
-	if req.Category != "" {
-		promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
-	}
+	// if req.Category != "" {
+	// 	promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
+	// }
 
 	if req.Condition != "" {
 		promptParts = append(promptParts, fmt.Sprintf("【状態】%s", req.Condition))
@@ -136,7 +136,7 @@ func (uc *GenerationUseCase) buildPrompt(req GenerateDescriptionRequest) string 
 
 	promptParts = append(promptParts, "")
 	promptParts = append(promptParts, "【条件】")
-	promptParts = append(promptParts, fmt.Sprintf("- 各説明文は%d文字以上%d文字以内（日本語文字数）", MinDescriptionLength, MaxDescriptionLength))
+	promptParts = append(promptParts, fmt.Sprintf("- 各説明文は全体で%d文字以上%d文字以内（日本語文字数）", MinDescriptionLength, MaxDescriptionLength))
 	promptParts = append(promptParts, "- 購入者の興味を引く魅力的で詳細な内容")
 	promptParts = append(promptParts, "- 商品の特徴や魅力を具体的に伝える")
 	promptParts = append(promptParts, "- 各説明文は番号付きリストで出力（例: 1. 説明文その1）")
@@ -180,8 +180,13 @@ func (uc *GenerationUseCase) parseSuggestions(text string, maxSuggestions int) [
 
 		// 長さチェック
 		if len(cleaned) < MinDescriptionLength || len(cleaned) > MaxDescriptionLength {
-			log.Printf("[PARSE] Skipped due to length: %d (min: %d, max: %d)", len(cleaned), MinDescriptionLength, MaxDescriptionLength)
-			continue
+			// スキップするのではなく、最大の長さでトリムする
+			if len(cleaned) > MaxDescriptionLength {
+				cleaned = cleaned[:MaxDescriptionLength]
+			} else {
+				continue
+			}
+
 		}
 
 		// 簡易フィルタリング
