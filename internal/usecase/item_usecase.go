@@ -326,3 +326,47 @@ func (uc *ItemUseCase) PurchaseItem(ctx context.Context, itemID, buyerID, addres
 	log.Printf("Purchase completed: Item %d, Buyer %d, Seller %d", itemID, buyerID, item.SellerID)
 	return nil
 }
+
+// GetItemTransactionByUserID はアイテムの取引情報を取得（購入者または出品者のみ）
+func (uc *ItemUseCase) GetItemTransactionByUserID(ctx context.Context, itemID, userID int64) (*entity.Transaction, error) {
+	// アイテム情報を取得
+	item, err := uc.itemRepo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, err
+	}
+	if item == nil {
+		return nil, ErrItemNotFound
+	}
+
+	// このアイテムに関連する取引を検索
+	transaction, err := uc.transactionRepo.FindByItemID(ctx, itemID)
+	if err != nil {
+		return nil, errors.New("transaction not found")
+	}
+
+	// ユーザーが購入者または出品者であることを確認
+	if transaction.BuyerID != userID && transaction.SellerID != userID {
+		return nil, errors.New("access denied: you are not part of this transaction")
+	}
+
+	return transaction, nil
+}
+
+// GetPurchasesByBuyerID は購入者の購入履歴を取得する
+func (uc *ItemUseCase) GetPurchasesByBuyerID(ctx context.Context, buyerID int64) ([]*entity.Transaction, error) {
+	return uc.transactionRepo.FindByBuyerID(ctx, buyerID)
+}
+
+// GetTransactionByIDForUser はトランザクションIDで取引を取得し、ユーザーが関係者か検証する
+func (uc *ItemUseCase) GetTransactionByIDForUser(ctx context.Context, txID, userID int64) (*entity.Transaction, error) {
+	tx, err := uc.transactionRepo.FindByID(ctx, txID)
+	if err != nil {
+		return nil, errors.New("transaction not found")
+	}
+
+	if tx.BuyerID != userID && tx.SellerID != userID {
+		return nil, errors.New("access denied: you are not part of this transaction")
+	}
+
+	return tx, nil
+}

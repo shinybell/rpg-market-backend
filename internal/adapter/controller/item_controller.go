@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -498,4 +499,85 @@ func (ctrl *ItemController) PurchaseItem(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Purchase successful"})
+}
+
+// GetMyItems は自分の出品アイテムを取得
+// @Summary 自分の出品アイテム取得
+// @Description 自分が出品したアイテムの一覧を取得
+// @Tags items
+// @Produce json
+// @Success 200 {array} entity.Item
+// @Router /api/users/me/items [get]
+func (ic *ItemController) GetMyItems(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	items, err := ic.itemUseCase.GetItemsBySeller(c.Request.Context(), userID.(int64), 100, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get items"})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
+}
+
+// GetMyPurchases は自分の購入アイテムを取得
+// @Summary 自分の購入アイテム取得
+// @Description 自分が購入したアイテムの一覧を取得
+// @Tags items
+// @Produce json
+// @Success 200 {array} entity.Transaction
+// @Router /api/users/me/purchases [get]
+func (ic *ItemController) GetMyPurchases(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	purchases, err := ic.itemUseCase.GetPurchasesByBuyerID(c.Request.Context(), userID.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get purchases"})
+		return
+	}
+
+	c.JSON(http.StatusOK, purchases)
+}
+
+// GetItemTransaction は商品の取引情報を取得
+// @Summary 商品の取引情報取得
+// @Description 自分が関わる取引情報を取得（購入者または出品者のみ）
+// @Tags items
+// @Produce json
+// @Param id path int true "Item ID"
+// @Success 200 {object} entity.Transaction
+// @Router /api/items/{id}/transaction [get]
+func (ic *ItemController) GetItemTransaction(c *gin.Context) {
+	itemIDStr := c.Param("id")
+	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	transaction, err := ic.itemUseCase.GetItemTransactionByUserID(c.Request.Context(), itemID, userID.(int64))
+	if err != nil {
+		// item_id による検索で見つからない場合はその旨を正しく返す（IDの混同を許容しない）
+		log.Printf("GetItemTransaction failed (by item_id): item_id=%d user_id=%v err=%v", itemID, userID, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("GetItemTransaction success: item_id=%d user_id=%v tx_id=%d buyer=%d seller=%d", itemID, userID, transaction.ID, transaction.BuyerID, transaction.SellerID)
+
+	c.JSON(http.StatusOK, transaction)
 }
