@@ -210,6 +210,7 @@ func main() {
 
 		// AI生成機能
 		api.POST("/items/description-suggestions", generationController.GenerateDescription)
+		api.POST("/items/appraise", generationController.AppraiseItem)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

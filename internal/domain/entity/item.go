@@ -57,6 +57,8 @@ type Item struct {
 	BrandID          *int64        `json:"brand_id,omitempty"`
 	Name             string        `json:"name" gorm:"size:255;not null"`
 	Description      string        `json:"description" gorm:"type:text;not null"`
+	RPGName          *string       `json:"rpg_name,omitempty" gorm:"size:255"`
+	RPGDescription   *string       `json:"rpg_description,omitempty" gorm:"type:text"`
 	Price            int64         `json:"price" gorm:"type:bigint;not null"`
 	Stock            int           `json:"stock" gorm:"default:1;not null"`
 	Condition        ItemCondition `json:"condition" gorm:"type:enum('new','like_new','very_good','good','acceptable');not null"`

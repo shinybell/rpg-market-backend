@@ -25,6 +25,8 @@ type ItemResponse struct {
 	CommentsCount    int                  `json:"comments_count"`
 	ViewCount        int                  `json:"view_count"`
 	Images           []ItemImageResponse  `json:"images,omitempty"`
+	RPGName          *string              `json:"rpg_name,omitempty"`
+	RPGDescription   *string              `json:"rpg_description,omitempty"`
 	CreatedAt        string               `json:"created_at"`
 	UpdatedAt        string               `json:"updated_at"`
 }
@@ -56,6 +58,8 @@ func ToItemResponse(item *entity.Item) ItemResponse {
 		LikesCount:       item.LikesCount,
 		CommentsCount:    item.CommentsCount,
 		ViewCount:        item.ViewCount,
+		RPGName:          item.RPGName,
+		RPGDescription:   item.RPGDescription,
 		CreatedAt:        item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:        item.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

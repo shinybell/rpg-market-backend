@@ -217,3 +217,123 @@ func (uc *GenerationUseCase) containsProhibitedWords(text string) bool {
 
 	return false
 }
+
+// AppraiseItemRequest はアイテム鑑定のリクエスト
+type AppraiseItemRequest struct {
+	ItemName    string
+	Description string
+	Category    string
+	Condition   string
+}
+
+// AppraiseItemResponse はアイテム鑑定のレスポンス
+type AppraiseItemResponse struct {
+	RPGName        string
+	RPGDescription string
+}
+
+// AppraiseItem はアイテムをRPG風に鑑定する
+func (uc *GenerationUseCase) AppraiseItem(ctx context.Context, req AppraiseItemRequest) (*AppraiseItemResponse, error) {
+	// バリデーション
+	if strings.TrimSpace(req.ItemName) == "" {
+		return nil, fmt.Errorf("%w: item name is required", ErrInvalidInput)
+	}
+
+	// RPG風の商品名を生成
+	rpgName, err := uc.generateRPGName(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// RPG風の説明文を生成
+	rpgDescription, err := uc.generateRPGDescription(ctx, req, rpgName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AppraiseItemResponse{
+		RPGName:        rpgName,
+		RPGDescription: rpgDescription,
+	}, nil
+}
+
+// generateRPGName はRPG風の商品名を生成
+func (uc *GenerationUseCase) generateRPGName(ctx context.Context, req AppraiseItemRequest) (string, error) {
+	var promptParts []string
+
+	promptParts = append(promptParts, "あなたはRPGゲームのアイテム鑑定士です。")
+	promptParts = append(promptParts, "以下の現代的なアイテム情報を、RPGゲームの世界観に合った魅力的なアイテム名に変換してください。")
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, fmt.Sprintf("【元の商品名】%s", req.ItemName))
+
+	if req.Category != "" {
+		promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
+	}
+
+	if req.Condition != "" {
+		promptParts = append(promptParts, fmt.Sprintf("【状態】%s", req.Condition))
+	}
+
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, "【条件】")
+	promptParts = append(promptParts, "- RPG風のファンタジー要素を取り入れた名前にする")
+	promptParts = append(promptParts, "- 元の商品の特徴を残しつつ、魔法や伝説的な要素を加える")
+	promptParts = append(promptParts, "- 20文字以内で簡潔に")
+	promptParts = append(promptParts, "- アイテム名のみを出力（説明や番号は不要）")
+
+	prompt := strings.Join(promptParts, "\n")
+
+	generatedText, err := uc.generationService.GenerateContent(ctx, prompt)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrGenerationFailed, err)
+	}
+
+	// 生成されたテキストをクリーンアップ
+	rpgName := strings.TrimSpace(generatedText)
+	rpgName = strings.Split(rpgName, "\n")[0] // 最初の行のみ取得
+
+	log.Printf("[APPRAISE] Generated RPG name: %s", rpgName)
+
+	return rpgName, nil
+}
+
+// generateRPGDescription はRPG風の説明文を生成
+func (uc *GenerationUseCase) generateRPGDescription(ctx context.Context, req AppraiseItemRequest, rpgName string) (string, error) {
+	var promptParts []string
+
+	promptParts = append(promptParts, "あなたはRPGゲームのアイテム鑑定士です。")
+	promptParts = append(promptParts, "以下のアイテムについて、RPGゲームの世界観に合った魅力的な説明文を生成してください。")
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, fmt.Sprintf("【RPG風アイテム名】%s", rpgName))
+	promptParts = append(promptParts, fmt.Sprintf("【元の商品名】%s", req.ItemName))
+
+	if req.Description != "" {
+		promptParts = append(promptParts, fmt.Sprintf("【元の説明】%s", req.Description))
+	}
+
+	if req.Category != "" {
+		promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
+	}
+
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, "【条件】")
+	promptParts = append(promptParts, "- RPGゲームの世界観に合った表現を使用")
+	promptParts = append(promptParts, "- 伝説や神話的な要素を含める")
+	promptParts = append(promptParts, "- 冒険者の興味を引く魅力的な内容")
+	promptParts = append(promptParts, fmt.Sprintf("- %d文字以上%d文字以内", MinDescriptionLength, MaxDescriptionLength))
+	promptParts = append(promptParts, "- 説明文のみを出力（番号や余計な文章は不要）")
+
+	prompt := strings.Join(promptParts, "\n")
+
+	generatedText, err := uc.generationService.GenerateContent(ctx, prompt)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrGenerationFailed, err)
+	}
+
+	// 生成されたテキストをクリーンアップ
+	rpgDescription := strings.TrimSpace(generatedText)
+
+	log.Printf("[APPRAISE] Generated RPG description: %s", rpgDescription)
+
+	return rpgDescription, nil
+}

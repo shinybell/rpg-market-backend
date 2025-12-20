@@ -40,6 +40,8 @@ type CreateItemRequest struct {
 	Status           entity.ItemStatus    `json:"status" binding:"required,oneof=draft on_sale"`
 	ImageURL         string               `json:"image_url,omitempty"`
 	Images           []CreateItemImageReq `json:"images,omitempty"`
+	RPGName          *string              `json:"rpg_name,omitempty" binding:"omitempty,max=255"`
+	RPGDescription   *string              `json:"rpg_description,omitempty"`
 }
 
 type CreateItemImageReq struct {
@@ -59,6 +61,8 @@ type UpdateItemRequest struct {
 	PrefectureID     *int                  `json:"prefecture_id,omitempty"`
 	Status           *entity.ItemStatus    `json:"status,omitempty"`
 	Images           []CreateItemImageReq  `json:"images,omitempty"`
+	RPGName          *string               `json:"rpg_name,omitempty" binding:"omitempty,max=255"`
+	RPGDescription   *string               `json:"rpg_description,omitempty"`
 }
 
 // @Summary アイテム作成
@@ -109,6 +113,8 @@ func (ctrl *ItemController) CreateItem(c *gin.Context) {
 		ShippingDays:     req.ShippingDays,
 		PrefectureID:     req.PrefectureID,
 		Status:           req.Status,
+		RPGName:          req.RPGName,
+		RPGDescription:   req.RPGDescription,
 	}
 
 	// 画像を追加
@@ -363,6 +369,12 @@ func (ctrl *ItemController) UpdateItem(c *gin.Context) {
 	}
 	if req.Status != nil {
 		item.Status = *req.Status
+	}
+	if req.RPGName != nil {
+		item.RPGName = req.RPGName
+	}
+	if req.RPGDescription != nil {
+		item.RPGDescription = req.RPGDescription
 	}
 	if req.Images != nil {
 		images := make([]entity.ItemImage, len(req.Images))

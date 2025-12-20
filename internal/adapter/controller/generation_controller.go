@@ -85,3 +85,69 @@ func (ctrl *GenerationController) GenerateDescription(c *gin.Context) {
 		Suggestions: result.Suggestions,
 	})
 }
+
+// AppraiseItemRequest はアイテム鑑定のリクエスト
+type AppraiseItemRequest struct {
+	ItemName    string `json:"item_name" binding:"required,min=1,max=255"`
+	Description string `json:"description,omitempty"`
+	Category    string `json:"category,omitempty"`
+	Condition   string `json:"condition,omitempty"`
+}
+
+// AppraiseItemResponse はアイテム鑑定のレスポンス
+type AppraiseItemResponse struct {
+	RPGName        string `json:"rpg_name"`
+	RPGDescription string `json:"rpg_description"`
+}
+
+// @Summary アイテム鑑定（RPG風変換）
+// @Description Gemini APIを使ってアイテムをRPG風の名前と説明文に変換する
+// @Tags generation
+// @Accept json
+// @Produce json
+// @Param request body AppraiseItemRequest true "鑑定リクエスト"
+// @Success 200 {object} AppraiseItemResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/items/appraise [post]
+func (ctrl *GenerationController) AppraiseItem(c *gin.Context) {
+	var req AppraiseItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	// UseCaseのリクエストに変換
+	useCaseReq := usecase.AppraiseItemRequest{
+		ItemName:    req.ItemName,
+		Description: req.Description,
+		Category:    req.Category,
+		Condition:   req.Condition,
+	}
+
+	// 鑑定実行
+	result, err := ctrl.generationUseCase.AppraiseItem(c.Request.Context(), useCaseReq)
+	if err != nil {
+		// エラーログを出力
+		log.Printf("[APPRAISE ERROR] %v", err)
+
+		// エラーの種類に応じてステータスコードを変更
+		switch err {
+		case usecase.ErrInvalidInput:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case usecase.ErrGenerationFailed:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to appraise item"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+		return
+	}
+
+	// レスポンスを返す
+	c.JSON(http.StatusOK, AppraiseItemResponse{
+		RPGName:        result.RPGName,
+		RPGDescription: result.RPGDescription,
+	})
+}
