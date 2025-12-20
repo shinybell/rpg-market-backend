@@ -121,10 +121,10 @@ func (uc *GenerationUseCase) GenerateDescriptions(ctx context.Context, req Gener
 func (uc *GenerationUseCase) buildPrompt(req GenerateDescriptionRequest) string {
 	var promptParts []string
 
-	promptParts = append(promptParts, "あなたはRPGゲームのアイテム説明文を生成するアシスタントです。")
-	promptParts = append(promptParts, fmt.Sprintf("以下の情報を元に、魅力的なアイテム説明文を%d個生成してください。", req.NumSuggestions))
+	promptParts = append(promptParts, "あなたは商品説明文を生成するアシスタントです。")
+	promptParts = append(promptParts, fmt.Sprintf("以下の情報を元に、魅力的な商品説明文を%d個生成してください。", req.NumSuggestions))
 	promptParts = append(promptParts, "")
-	promptParts = append(promptParts, fmt.Sprintf("【アイテム名】%s", req.ItemName))
+	promptParts = append(promptParts, fmt.Sprintf("【商品名】%s", req.ItemName))
 
 	if req.Category != "" {
 		promptParts = append(promptParts, fmt.Sprintf("【カテゴリ】%s", req.Category))
@@ -137,8 +137,8 @@ func (uc *GenerationUseCase) buildPrompt(req GenerateDescriptionRequest) string 
 	promptParts = append(promptParts, "")
 	promptParts = append(promptParts, "【条件】")
 	promptParts = append(promptParts, fmt.Sprintf("- 各説明文は%d文字以上%d文字以内（日本語文字数）", MinDescriptionLength, MaxDescriptionLength))
-	promptParts = append(promptParts, "- RPGゲームの世界観に合った表現を使用")
-	promptParts = append(promptParts, "- 購入者の興味を引く魅力的な内容")
+	promptParts = append(promptParts, "- 購入者の興味を引く魅力的で詳細な内容")
+	promptParts = append(promptParts, "- 商品の特徴や魅力を具体的に伝える")
 	promptParts = append(promptParts, "- 各説明文は番号付きリストで出力（例: 1. 説明文その1）")
 	promptParts = append(promptParts, "- 説明文のみを出力し、他の余計な文章は含めない")
 
