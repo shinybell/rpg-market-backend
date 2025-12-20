@@ -39,9 +39,9 @@ type CreateItemRequest struct {
 	PrefectureID     *int                 `json:"prefecture_id,omitempty"`
 	Status           entity.ItemStatus    `json:"status" binding:"required,oneof=draft on_sale"`
 	ImageURL         string               `json:"image_url,omitempty"`
-	Images           []CreateItemImageReq `json:"images,omitempty"`
-	RPGName          *string              `json:"rpg_name,omitempty" binding:"omitempty,max=255"`
-	RPGDescription   *string              `json:"rpg_description,omitempty"`
+	Images           []CreateItemImageReq `json:"images" binding:"required,min=1,dive"`
+	RPGName          string               `json:"rpg_name" binding:"required,min=1,max=255"`
+	RPGDescription   string               `json:"rpg_description" binding:"required,min=10"`
 }
 
 type CreateItemImageReq struct {
@@ -113,8 +113,8 @@ func (ctrl *ItemController) CreateItem(c *gin.Context) {
 		ShippingDays:     req.ShippingDays,
 		PrefectureID:     req.PrefectureID,
 		Status:           req.Status,
-		RPGName:          req.RPGName,
-		RPGDescription:   req.RPGDescription,
+		RPGName:          &req.RPGName,
+		RPGDescription:   &req.RPGDescription,
 	}
 
 	// 画像を追加
