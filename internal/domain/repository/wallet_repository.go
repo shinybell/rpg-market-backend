@@ -13,4 +13,10 @@ type WalletRepository interface {
 
 	// Update はウォレットを更新する
 	Update(ctx context.Context, wallet *entity.Wallet) error
+
+	// CreateTransaction はウォレット取引履歴を作成する
+	CreateTransaction(ctx context.Context, tx *entity.WalletTransaction) error
+
+	// GetTransactionHistory はウォレット取引履歴を取得する
+	GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*entity.WalletTransaction, error)
 }

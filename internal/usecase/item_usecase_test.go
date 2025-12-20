@@ -512,6 +512,16 @@ func (r *MockWalletRepository) Update(ctx context.Context, wallet *entity.Wallet
 	return nil
 }
 
+func (r *MockWalletRepository) CreateTransaction(ctx context.Context, tx *entity.WalletTransaction) error {
+	// For tests, we don't need to persist transactions. Return nil to indicate success.
+	return nil
+}
+
+func (r *MockWalletRepository) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*entity.WalletTransaction, error) {
+	// Return empty history by default for tests
+	return []*entity.WalletTransaction{}, nil
+}
+
 // MockNotificationRepository はNotificationRepositoryのモック実装
 type MockNotificationRepository struct{}
 

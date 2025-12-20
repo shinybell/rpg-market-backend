@@ -92,6 +92,7 @@ func main() {
 	followUseCase := usecase.NewFollowUseCase(followRepo, userRepo)
 	messageUseCase := usecase.NewMessageUsecase(messageRepo, transactionRepo)
 	generationUseCase := usecase.NewGenerationUseCase(geminiClient)
+	walletUseCase := usecase.NewWalletUseCase(walletRepo, database.GetDB())
 
 	// Initialize WebSocket Hub
 	hub := websocket.NewHub()
@@ -107,6 +108,7 @@ func main() {
 	followController := controller.NewFollowController(followUseCase)
 	messageController := controller.NewMessageController(messageUseCase, userRepo, hub)
 	generationController := controller.NewGenerationController(generationUseCase)
+	walletController := controller.NewWalletController(walletUseCase, userUseCase)
 
 	// Setup router
 	gin.SetMode(cfg.LogLevel)
@@ -213,6 +215,10 @@ func main() {
 		api.POST("/items/description-suggestions", generationController.GenerateDescription)
 		api.POST("/items/appraise", generationController.AppraiseItem)
 		api.POST("/search/convert", generationController.ConvertSearchQuery)
+
+		// ウォレット管理
+		api.POST("/wallet/charge", walletController.ChargeBalance)
+		api.GET("/wallet/transactions", walletController.GetTransactionHistory)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

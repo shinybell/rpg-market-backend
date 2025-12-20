@@ -32,3 +32,20 @@ func (r *walletRepository) FindByUserID(ctx context.Context, userID int64) (*ent
 func (r *walletRepository) Update(ctx context.Context, wallet *entity.Wallet) error {
 	return r.db.WithContext(ctx).Save(wallet).Error
 }
+
+// CreateTransaction はウォレット取引履歴を作成する
+func (r *walletRepository) CreateTransaction(ctx context.Context, tx *entity.WalletTransaction) error {
+	return r.db.WithContext(ctx).Create(tx).Error
+}
+
+// GetTransactionHistory はウォレット取引履歴を取得する
+func (r *walletRepository) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*entity.WalletTransaction, error) {
+	var transactions []*entity.WalletTransaction
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	return transactions, err
+}
