@@ -287,6 +287,42 @@ func (ctrl *ItemController) SearchItems(c *gin.Context) {
 	c.JSON(http.StatusOK, presenter.ToItemListResponse(items))
 }
 
+// SearchItemsByKeywordsRequest は複数キーワード検索のリクエスト
+type SearchItemsByKeywordsRequest struct {
+	Keywords []string `json:"keywords" binding:"required,min=1"`
+}
+
+// @Summary 複数キーワードでアイテム検索
+// @Description 複数のキーワードでアイテムを検索する（名前・説明文から検索）
+// @Tags items
+// @Accept json
+// @Produce json
+// @Param request body SearchItemsByKeywordsRequest true "検索キーワード"
+// @Param limit query int false "取得件数" default(20)
+// @Param offset query int false "オフセット" default(0)
+// @Success 200 {object} presenter.ItemListResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/items/search/keywords [post]
+func (ctrl *ItemController) SearchItemsByKeywords(c *gin.Context) {
+	var req SearchItemsByKeywordsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	items, err := ctrl.itemUseCase.SearchItemsByKeywords(c.Request.Context(), req.Keywords, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search items: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, presenter.ToItemListResponse(items))
+}
+
 // @Summary アイテム更新
 // @Description アイテムの情報を更新する（出品者のみ）
 // @Tags items

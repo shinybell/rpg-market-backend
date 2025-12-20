@@ -342,3 +342,73 @@ func (uc *GenerationUseCase) generateRPGDescription(ctx context.Context, req App
 
 	return rpgDescription, nil
 }
+
+// ConvertSearchQueryRequest は検索クエリ変換のリクエスト
+type ConvertSearchQueryRequest struct {
+	UserQuery string
+}
+
+// ConvertSearchQueryResponse は検索クエリ変換のレスポンス
+type ConvertSearchQueryResponse struct {
+	Keywords []string
+}
+
+// ConvertSearchQuery はユーザーの自然言語クエリを検索キーワードに変換する
+func (uc *GenerationUseCase) ConvertSearchQuery(ctx context.Context, req ConvertSearchQueryRequest) (*ConvertSearchQueryResponse, error) {
+	// バリデーション
+	if strings.TrimSpace(req.UserQuery) == "" {
+		return nil, fmt.Errorf("%w: user query is required", ErrInvalidInput)
+	}
+
+	// クエリの長さチェック
+	if len(req.UserQuery) > MaxInputLength {
+		return nil, fmt.Errorf("%w: query too long", ErrExceededMaxLength)
+	}
+
+	// プロンプトを構築
+	var promptParts []string
+	promptParts = append(promptParts, "あなたは検索クエリ抽出の専門家です。")
+	promptParts = append(promptParts, "ユーザーが入力した文章から、商品検索に最適なキーワードを抽出してください。")
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, fmt.Sprintf("【ユーザーの入力】%s", req.UserQuery))
+	promptParts = append(promptParts, "")
+	promptParts = append(promptParts, "【条件】")
+	promptParts = append(promptParts, "- 重要なキーワードを1〜5個抽出")
+	promptParts = append(promptParts, "- 各キーワードは半角スペース区切りで1行に出力")
+	promptParts = append(promptParts, "- 余計な説明や記号は不要")
+	promptParts = append(promptParts, "- 例: 「剣 強い 初心者」")
+
+	prompt := strings.Join(promptParts, "\n")
+
+	// Gemini APIを呼び出し
+	generatedText, err := uc.generationService.GenerateContent(ctx, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrGenerationFailed, err)
+	}
+
+	// 生成されたテキストをクリーンアップしてキーワードに分割
+	cleanText := strings.TrimSpace(generatedText)
+	cleanText = strings.ReplaceAll(cleanText, "\n", " ")
+	cleanText = strings.ReplaceAll(cleanText, "　", " ") // 全角スペースを半角に
+
+	keywords := []string{}
+	for _, word := range strings.Fields(cleanText) {
+		word = strings.TrimSpace(word)
+		if word != "" && len(word) < 50 { // 極端に長い単語は除外
+			keywords = append(keywords, word)
+		}
+		if len(keywords) >= 5 { // 最大5個まで
+			break
+		}
+	}
+
+	log.Printf("[SEARCH QUERY] User query: %s -> Keywords: %v", req.UserQuery, keywords)
+
+	if len(keywords) == 0 {
+		return nil, fmt.Errorf("%w: no valid keywords extracted", ErrGenerationFailed)
+	}
+
+	return &ConvertSearchQueryResponse{
+		Keywords: keywords,
+	}, nil
+}

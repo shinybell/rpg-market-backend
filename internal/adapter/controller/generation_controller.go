@@ -151,3 +151,59 @@ func (ctrl *GenerationController) AppraiseItem(c *gin.Context) {
 		RPGDescription: result.RPGDescription,
 	})
 }
+
+// ConvertSearchQueryRequest は検索クエリ変換のリクエスト
+type ConvertSearchQueryRequest struct {
+	Query string `json:"query" binding:"required,min=1,max=500"`
+}
+
+// ConvertSearchQueryResponse は検索クエリ変換のレスポンス
+type ConvertSearchQueryResponse struct {
+	Keywords []string `json:"keywords"`
+}
+
+// @Summary 検索クエリ変換
+// @Description ユーザーの自然言語クエリをGemini APIで検索キーワードに変換する
+// @Tags generation
+// @Accept json
+// @Produce json
+// @Param request body ConvertSearchQueryRequest true "検索クエリ"
+// @Success 200 {object} ConvertSearchQueryResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/search/convert [post]
+func (ctrl *GenerationController) ConvertSearchQuery(c *gin.Context) {
+	var req ConvertSearchQueryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	// UseCaseのリクエストに変換
+	useCaseReq := usecase.ConvertSearchQueryRequest{
+		UserQuery: req.Query,
+	}
+
+	// クエリ変換実行
+	result, err := ctrl.generationUseCase.ConvertSearchQuery(c.Request.Context(), useCaseReq)
+	if err != nil {
+		// エラーログを出力
+		log.Printf("[CONVERT QUERY ERROR] %v", err)
+
+		// エラーの種類に応じてステータスコードを変更
+		switch err {
+		case usecase.ErrInvalidInput, usecase.ErrExceededMaxLength:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case usecase.ErrGenerationFailed:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert query"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+		return
+	}
+
+	// レスポンスを返す
+	c.JSON(http.StatusOK, ConvertSearchQueryResponse{
+		Keywords: result.Keywords,
+	})
+}

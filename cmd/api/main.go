@@ -150,6 +150,7 @@ func main() {
 	// Public item routes (認証不要)
 	r.GET("/api/items", itemController.ListItems)
 	r.GET("/api/items/search", itemController.SearchItems) // searchは:idより前に定義
+	r.POST("/api/items/search/keywords", itemController.SearchItemsByKeywords)
 	r.GET("/api/items/seller/:seller_id", itemController.ListItemsBySeller)
 	r.GET("/api/items/category/:category_id", itemController.ListItemsByCategory)
 	r.GET("/api/items/:id", itemController.GetItem)
@@ -211,6 +212,7 @@ func main() {
 		// AI生成機能
 		api.POST("/items/description-suggestions", generationController.GenerateDescription)
 		api.POST("/items/appraise", generationController.AppraiseItem)
+		api.POST("/search/convert", generationController.ConvertSearchQuery)
 	}
 
 	log.Printf("Server listening on port %s (env: %s)", cfg.Port, cfg.Environment)

@@ -111,6 +111,11 @@ func (uc *ItemUseCase) SearchItems(ctx context.Context, keyword string, limit, o
 	return uc.itemRepo.Search(ctx, keyword, limit, offset)
 }
 
+// SearchItemsByKeywords は複数キーワードでアイテムを検索する
+func (uc *ItemUseCase) SearchItemsByKeywords(ctx context.Context, keywords []string, limit, offset int) ([]*entity.Item, error) {
+	return uc.itemRepo.SearchByKeywords(ctx, keywords, limit, offset)
+}
+
 // UpdateItem はアイテムを更新する（出品者のみ）
 func (uc *ItemUseCase) UpdateItem(ctx context.Context, item *entity.Item, userID int64) error {
 	// 既存のアイテムを取得
